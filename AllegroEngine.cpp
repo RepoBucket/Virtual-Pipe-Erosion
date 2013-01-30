@@ -1,4 +1,6 @@
 #include "AllegroEngine.h"
+#include <stdio.h>
+#include <string>
 
 AllegroEngine::AllegroEngine(): timer_fps(0), event_queue(0), root(0), font(0), quit(false), minimized(false)
   {
@@ -41,8 +43,8 @@ bool AllegroEngine::Init(int winwidth,int winheight)
   al_register_event_source(event_queue, al_get_keyboard_event_source());
   al_register_event_source(event_queue, al_get_mouse_event_source());
   //
-
-  return EngineInit(errormap) || errormap.size()==0?true:false;
+  bool errors = EngineInit(errormap);
+  return errors || errormap.size()==0?true:false;
   }
 
 void AllegroEngine::Start()
@@ -155,6 +157,7 @@ void AllegroEngine::Run()
 
 void AllegroEngine::DoRender()
   {
+  al_set_target_backbuffer(root);
   al_clear_to_color(al_map_rgb(0,0,0));
   Render(root);
   al_flip_display();

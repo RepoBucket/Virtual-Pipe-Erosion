@@ -6,7 +6,7 @@ using namespace std;
 
 class Engine: public AllegroEngine
 {
-  bool EngineInit();
+  bool EngineInit(map<int,bool> errormap);
 	void Update();
 	void Render(ALLEGRO_DISPLAY *root);
 	void EngineEnd();

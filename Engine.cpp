@@ -1,18 +1,30 @@
 #include "Engine.h"
+#include <allegro5/allegro_primitives.h>
+#include "region.h"
+#include <map>
 
 Engine DisplayEngine;
+region *thisRegion;
 
-bool Engine::EngineInit()
+bool Engine::EngineInit(map<int,bool> errormap)
   {
-  return true;
+  al_init_primitives_addon();
+  thisRegion = new region(640, 640);
+  thisRegion->generateTopography();
+  thisRegion->tempRender();
+  if (thisRegion->bitmap != 0) return true;
+  else return false;
   }
 
 void Engine::Update()
   {
+  thisRegion->bitmap;
   }
 
 void Engine::Render(ALLEGRO_DISPLAY *root)
   {
+  
+  al_draw_bitmap(thisRegion->bitmap, 0, 0, 0);
   }
 
 void Engine::EngineEnd()
