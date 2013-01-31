@@ -85,12 +85,14 @@
   <ItemGroup>
     <ClCompile Include="AllegroEngine.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="heightmap.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="region.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AllegroEngine.h" />
     <ClInclude Include="Engine.h" />
+    <ClInclude Include="heightmap.h" />
     <ClInclude Include="region.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
