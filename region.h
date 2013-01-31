@@ -13,14 +13,21 @@ struct heightmap //Doesn't have to store height info.
   heightmap(const heightmap &othermap);
   void initMap(const double &width, const double& height); //Blank map and resize it
   void generate(const double &lower, const double &upper); // Generate a map from a perlin noisemap.
-  double* at(const int &x, const int& y); //Act like <vector>'s at.
+  double& at(const int &x, const int& y); //Act like <vector>'s at.
 
   void translate(const double &p);//Shift all numbers by p
   void scale(double lower, double upper); //stretch to fit within min, max.
   void multiply(const double& p);
   double findMin();
   double findMax();
-  
+
+  static ALLEGRO_COLOR lerp(const ALLEGRO_COLOR &c1, const ALLEGRO_COLOR &c2, const double &interpolate);
+  static ALLEGRO_COLOR addColors(ALLEGRO_COLOR c1, const ALLEGRO_COLOR &c2);
+  static ALLEGRO_COLOR multiplyColors(ALLEGRO_COLOR color, const double &mult);
+  static ALLEGRO_COLOR multiplyColors(ALLEGRO_COLOR color1, const ALLEGRO_COLOR &color2);
+  double ringAngularAverage(const double &x, const double &y, const double &ringSize);
+  double findDistance(const double & x1,const double & y1, const double &x2, const double &y2);
+
   void setPerlinSeed(const int &newSeed);
   void setPerlinSeed(); //Random
   void setPerlinFrequency();
@@ -53,4 +60,10 @@ class region
     int h;
   protected:
     heightmap topograph;
+    heightmap glowmap;
+    double glowMultiplier;
+    ALLEGRO_COLOR skyColor;
+
+    void addShadows(heightmap &hmap); //smed
+    void addGlow(heightmap &hmap);
   };
