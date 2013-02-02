@@ -117,6 +117,14 @@ double& heightmap::at(const int &x, const int& y)
   return infomap.at(y * h + x);
   }
 
+double* heightmap::at(const int &x, const int& y, bool distinguisher)
+  {
+  if (x < w && y < h && x >= 0 && y >= 0)
+    return &infomap.at(y * h + x);
+  else
+    return 0;
+  }
+
 void heightmap::setPerlinSeed()
   {
   boost::random::uniform_int_distribution<> dist(0, numeric_limits<int>::max());

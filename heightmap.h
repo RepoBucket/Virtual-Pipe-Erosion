@@ -13,6 +13,7 @@ struct heightmap //Doesn't have to store height info.
   void initMap(const double &width, const double& height); //Blank map and resize it
   void generate(const double &lower, const double &upper); // Generate a map from a perlin noisemap.
   double& at(const int &x, const int& y); //Act like <vector>'s at.
+  double* at(const int &x, const int &y, bool distinguisher); //pointer at.
 
   void translate(const double &p);//Shift all numbers by p
   void scale(double lower, double upper); //stretch to fit within min, max.

@@ -12,19 +12,19 @@ bool Engine::EngineInit(map<int,bool> errormap)
   thisRegion = new region(640, 640);
   thisRegion->generateTopography();
   thisRegion->tempRender();
-  if (thisRegion->bitmap != 0) return true;
+  if (thisRegion->landmap != 0) return true;
   else return false;
   }
 
 void Engine::Update()
   {
-  thisRegion->bitmap;
+  thisRegion->landmap;
   }
 
 void Engine::Render(ALLEGRO_DISPLAY *root)
   {
   
-  al_draw_bitmap(thisRegion->bitmap, 0, 0, 0);
+  al_draw_bitmap(thisRegion->landmap, 0, 0, 0);
   }
 
 void Engine::EngineEnd()
