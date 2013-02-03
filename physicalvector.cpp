@@ -3,7 +3,7 @@
 #include <cmath>
 
 vector3::vector3(): length(0)
-  {  }
+  {x = y = z = 0; }
 
 vector3::vector3(const double& x1,const double& y1, const double& z1)
   {
@@ -23,9 +23,9 @@ vector3::vector3(const vector3 & target)
 
 void vector3::setVector(const double& x1, const double& y1, const double& z1, const double& x2, const double& y2, const double& z2)
 	{
-  x = x2 - x1;
-  y = y2 - y1;
-  z = z2 - z1;
+  x = x1 - x2;
+  y = y1 - y2;
+  z = z1 - z2;
   findLength();
 	}
 
@@ -126,6 +126,12 @@ vector3 operator* (vector3 leftside, const double &var)
 	leftside *= var;
 	return leftside;
 	}
+
+vector3 operator* (const double& var, vector3 rightside)
+  {
+  rightside *= var;
+  return rightside;
+  }
 
 vector3 operator / (vector3 leftvector, const double &var)
   {

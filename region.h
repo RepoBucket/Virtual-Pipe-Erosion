@@ -26,5 +26,4 @@ class region
     ALLEGRO_COLOR waterColor;
 
     void addShadows(heightmap &hmap); //smed
-   // void addGlow(heightmap &hmap);
   };

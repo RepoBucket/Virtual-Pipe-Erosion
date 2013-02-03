@@ -1,7 +1,6 @@
 #pragma once
 
-#include <cmath>
-#include <vector>
+#include <utility>
 
 using namespace std;
 
@@ -42,5 +41,5 @@ public:
   vector3 & operator*= (const double &var);
   vector3 & operator /= (const double &var);
   //vector3 * divideby(double &var);
-  vector3 cross (vector3 left, const vector3& right);
+  static vector3 cross (vector3 left, const vector3& right);
 };
