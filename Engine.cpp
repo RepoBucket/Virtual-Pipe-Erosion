@@ -2,29 +2,40 @@
 #include <allegro5/allegro_primitives.h>
 #include "region.h"
 #include <map>
+#include "layereddata.h"
 
 Engine DisplayEngine;
-region *thisRegion;
+//region *thisRegion;
+ErosionHeightmap *thisErosion;
 
 bool Engine::EngineInit(map<int,bool> errormap)
   {
   al_init_primitives_addon();
-  thisRegion = new region(640, 640);
+  /*thisRegion = new region(640, 640);
   thisRegion->generateTopography();
   thisRegion->tempRender();
   if (thisRegion->landmap != 0) return true;
-  else return false;
+  else return false;*/
+  thisErosion = new ErosionHeightmap(128,128);
+  thisErosion->generate(1);
+  thisErosion->addWater(23,23,100);
+  thisErosion->step();
+  thisErosion->step(); //Two steps!
+  thisErosion->render();
+
+
+  return true;
   }
 
 void Engine::Update()
   {
-  thisRegion->landmap;
+  //thisRegion->landmap;
   }
 
 void Engine::Render(ALLEGRO_DISPLAY *root)
   {
-  
-  al_draw_bitmap(thisRegion->landmap, 0, 0, 0);
+  al_draw_bitmap(thisErosion->terrain, 0, 0, 0);
+  //al_draw_bitmap(thisRegion->landmap, 0, 0, 0);
   }
 
 void Engine::EngineEnd()

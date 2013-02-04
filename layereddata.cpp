@@ -24,14 +24,28 @@ double cell::getHeight()
     height += layers.at(counter).height;
     }
   height += sediments.getHeight();
-  height += fluid;
+  //height += fluid;
   return height;
+  }
+
+double cell::getTotalHeight()
+  {
+  double totalheight = 0;
+  for (int counter = 0; counter < layers.size(); counter++)
+    {
+    totalheight += layers.at(counter).height;
+    }
+  totalheight += sediments.getHeight();
+  totalheight += fluid;
+  return totalheight;
   }
 
 ErosionHeightmap::ErosionHeightmap(const int& width, const int& height)
   : w(width), h(height), thresholdSpeed(3)
   {
   cell buffercell;
+  nullcell.nullcell = true;
+  terrain = al_create_bitmap(w, h);
 
   for(int xcounter = 0; xcounter < w; xcounter++)
     for (int ycounter = 0; ycounter < h; ycounter++)
@@ -66,6 +80,8 @@ void ErosionHeightmap::generate(const int &layers)
         at(xcounter, ycounter).layers.push_back(bufferlayer);
         }
     }
+
+  heightmap2 = heightmap1;
   }
 
 cell& ErosionHeightmap::at(const int &x, const int &y)
@@ -206,22 +222,33 @@ vector3 ErosionHeightmap::averageGradient(cell & input, const int& x, const int&
   return output;
   }
 
-/*vector3 ErosionHeightmap::normal(const int& x, const int& y)
+vector3 ErosionHeightmap::normal(cell& thisCell, const int& x, const int& y)
   {
   vector3 horizontal, vertical;
-  vector3 *phor, *pvec; //To use in case the destination doesn't exist.
-
+  
   //first the horizontal.
   cell buffer = at(x-1, y);
   cell otherbuffer = at(x+1,y);
-  horizontal.setVector(buffer.x, buffer.y, buffer.height, otherbuffer.x, otherbuffer.y, otherbuffer.height);
+  if (buffer.nullcell)
+    //If the right side doesn't exist
+    horizontal.setVector(x, y, thisCell.height, x+1, y, otherbuffer.height);
+  else if (otherbuffer.nullcell) //left side?
+    horizontal.setVector(x-1, y, buffer.height, x, y, thisCell.height);
+  else
+    horizontal.setVector(x-1, y, buffer.height, x+1, y, otherbuffer.height);
+  
   //the the vertical
-  buffer = at(x, y+1);
-  other = at(x, y-1);
-  vertical.setVector(buffer.x, buffer.y, buffer.height, otherbuffer.x, otherbuffer.y, otherbuffer.height); 
+  buffer = at(x, y-1); // top
+  otherbuffer = at(x, y+1); // bottom
+  if (buffer.nullcell)
+    vertical.setVector(x, y, thisCell.height, x, y-1, otherbuffer.height); 
+  else if (otherbuffer.nullcell)
+    vertical.setVector(x, y+1, buffer.height, x, y, thisCell.height); 
+  else
+    vertical.setVector(x, y+1, buffer.height, x, y-1, otherbuffer.height); 
 
   return vector3::cross(horizontal, vertical);
-  }*/
+  }
 
 vector3 ErosionHeightmap::normal(const vector3& gradient)
   {
@@ -416,6 +443,8 @@ void ErosionHeightmap::step()
   pair<double, double> movedCoords;
   cell currentcell;
   vector3 acceleration;
+  vector3 finalAcceleration;
+  double minusone = -1;
 
   while (!currentQueue->empty())
     {
@@ -430,12 +459,15 @@ void ErosionHeightmap::step()
       if (currentcell.velocity.length >= thresholdSpeed)
         {
         // add the acceleration...
-        acceleration = averageGradient(currentcell, current.first, current.second) * -1.0;
-        acceleration = normal(acceleration);
+        acceleration = averageGradient(currentcell, current.first, current.second);
+        acceleration *= minusone;
+        acceleration = normal(currentcell, current.first, current.second);
         // Equation 16 below.
         acceleration.setVector(acceleration.x * -1, acceleration.y * -1, -1 * acceleration.x * acceleration.x - acceleration.y * acceleration.y);
         // Equation 18 below.
-        acceleration = acceleration.z / acceleration.length * 9.81 * acceleration / acceleration.length;
+        finalAcceleration = acceleration;
+        finalAcceleration /= acceleration.length;
+        finalAcceleration *= (acceleration.z / acceleration.length * 9.81);
         // add velocity and acceleration.
         currentcell.velocity += acceleration;
          // After dividing the fluid into the neighboring cells, also divide the velocity and push it
@@ -471,4 +503,43 @@ void ErosionHeightmap::step()
   resetUpdatedFlags();
   //Damped.
   dampVelocity();
+  }
+
+void ErosionHeightmap::render()
+  {
+  renderMap.initMap(w,h);
+  
+  for (int ycounter = 0; ycounter < w; ycounter++)
+    for (int xcounter = 0; xcounter < h; xcounter++)
+      {
+      //add shading or raytracing later~
+      renderMap.at(xcounter, ycounter) = at(xcounter, ycounter).getTotalHeight();
+      if (at(xcounter, ycounter).fluid != 0)
+        waterMap.push_back(true);
+      else
+        waterMap.push_back(false);
+      }  ///Do it like this at first. Add shading for different depths of water laaater
+
+  renderMap.scale(0,255);
+
+
+  ALLEGRO_COLOR sandcolor;
+  sandcolor = al_map_rgb(194, 178, 128);
+  //watercolor = al_map_rgb(0,0,255);
+
+  al_set_target_bitmap(terrain);
+  al_lock_bitmap(al_get_target_bitmap(), al_get_bitmap_format(terrain), ALLEGRO_LOCK_READWRITE);
+
+  for (int ycounter = 0; ycounter < w; ycounter++)
+    for (int xcounter = 0; xcounter < h; xcounter++)
+      {
+      if (waterMap.at(ycounter * h + xcounter))
+        al_put_pixel(xcounter, ycounter, al_map_rgb(0, 0, renderMap.at(xcounter, ycounter)));
+      else
+        al_put_pixel(xcounter, ycounter, al_map_rgb(renderMap.at(xcounter, ycounter), 0, 0));
+      }
+
+  al_unlock_bitmap(al_get_target_bitmap());
+
+ // addShadows(copymap);
   }

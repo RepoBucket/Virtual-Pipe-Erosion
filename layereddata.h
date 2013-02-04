@@ -4,6 +4,8 @@
 #include <queue>
 #include <string>
 #include <map>
+#include "allegro5\allegro5.h"
+#include "heightmap.h"
 
 enum materialID {NOTHING = 0, SOFTMAT, MEDIUMMAT, HARDMAT};
 
@@ -43,6 +45,7 @@ struct cell
   transientLayer sediments;
   double height;
   double getHeight();
+  double getTotalHeight();
 
   bool updated;
   bool heightChecked;
@@ -72,6 +75,8 @@ class materialDictionary
 class ErosionHeightmap
   {
   public:
+  ALLEGRO_BITMAP* terrain;
+  ALLEGRO_BITMAP* water;
   ErosionHeightmap(const int& width, const int& height);
   void generate(const int &layers);
   cell& at(const int & x, const int & y);
@@ -80,8 +85,10 @@ class ErosionHeightmap
   void step(); //Do a step of the simulation.
   void swapMaps(); //Swap the current map and the write-to map.
   void swapQueues();
+  void render();
   int w, h;
   materialDictionary matDict;
+
   protected:
     cell nullcell;
 
@@ -90,7 +97,7 @@ class ErosionHeightmap
     double adjustedHeight(cell & input);
     vector3 averageGradient(cell & input, const int& x, const int& y);
     void distributeByGradient(cell & input, const int& x, const int& y);
-    //vector3 normal(const int& x, const int& y);
+    vector3 normal(cell& thisCell, const int& x, const int& y);
     vector3 normal(const vector3& gradient);
     void distribute(cell& thisCell, const pair<double, double>& coords);
     void dampVelocity();
@@ -99,6 +106,10 @@ class ErosionHeightmap
     vector<cell> heightmap2;
     vector<cell>* currentMap;
     vector<cell>* writeToMap;
+
+    heightmap renderMap; //Have to scale.
+    vector<bool> waterMap;
+
     queue<pair<int, int>> updateQueue1;
     queue<pair<int, int>> updateQueue2;
     queue<pair<int, int>>* currentQueue;
