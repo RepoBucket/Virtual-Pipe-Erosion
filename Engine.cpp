@@ -17,10 +17,11 @@ bool Engine::EngineInit(map<int,bool> errormap)
   if (thisRegion->landmap != 0) return true;
   else return false;*/
   thisErosion = new ErosionHeightmap(128,128);
-  thisErosion->generate(1);
-  thisErosion->addWater(23,23,100);
-  thisErosion->step();
-  thisErosion->step(); //Two steps!
+  thisErosion->generateV();
+ /* thisErosion->addWater(64,1,10);
+  thisErosion->addWater(12,23,10);
+  thisErosion->addWater(72,4,10);*/
+ /// thisErosion->step();
   thisErosion->render();
 
 
@@ -30,6 +31,10 @@ bool Engine::EngineInit(map<int,bool> errormap)
 void Engine::Update()
   {
   //thisRegion->landmap;
+  // thisErosion->addWater(1,1,10);
+  thisErosion->addWater(64,1,100);
+  thisErosion->step();
+  thisErosion->render();
   }
 
 void Engine::Render(ALLEGRO_DISPLAY *root)

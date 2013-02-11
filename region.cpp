@@ -1,7 +1,9 @@
 #include "region.h"
+//#include "heightmap.h"
 #include <limits>
 #include <time.h>
 #include <cstdlib>
+
 
 ALLEGRO_COLOR multiply(ALLEGRO_COLOR c1, const double &mult)
   {

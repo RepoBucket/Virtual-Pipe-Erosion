@@ -23,7 +23,7 @@ struct heightmap //Doesn't have to store height info.
   double findMin();
   double findMax();
 
-  static ALLEGRO_COLOR lerp(const ALLEGRO_COLOR &c1, const ALLEGRO_COLOR &c2, const double &interpolate);
+  static ALLEGRO_COLOR lerp(ALLEGRO_COLOR c1, const ALLEGRO_COLOR &c2, const double &interpolate);
   static ALLEGRO_COLOR addColors(ALLEGRO_COLOR c1, const ALLEGRO_COLOR &c2);
   static ALLEGRO_COLOR multiplyColors(ALLEGRO_COLOR color, const double &mult);
   static ALLEGRO_COLOR multiplyColors(ALLEGRO_COLOR color1, const ALLEGRO_COLOR &color2);

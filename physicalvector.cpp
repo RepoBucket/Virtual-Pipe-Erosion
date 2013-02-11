@@ -49,13 +49,23 @@ void vector3::normalize()
 		}
 	}
 
-void vector3::scale(const double& p)
+vector3& vector3::scale(const double& p)
 	{
   x *= p;
   y *= p;
   z *= p;
 	findLength();
+  return *this;
 	}
+
+vector3& vector3::divide(const double& p)
+  {
+  x /= p;
+  y /= p;
+  z /= p;
+	findLength();
+  return *this;
+  }
 
 coord3 vector3::printvector()
 	{
@@ -158,4 +168,9 @@ vector3 vector3::cross (vector3 left, const vector3& right)
                   left.x * right.y - right.x * left.y
                 );
   return left;
+  }
+
+void vector3::clear()
+  {
+  x = y = z = length = 0;
   }

@@ -26,7 +26,9 @@ public:
 	void setVector(const double& x1, const double& y1, const double& z1, const double& x2, const double& y2, const double& z2); // finds the vector from two coordinates
 	void setVector(const double& x1, const double& y1, const double& z1);
   void normalize();
-  void scale(const double& p); //multiplies vector by p
+  void clear();
+  vector3& scale(const double& p); //multiplies vector by p
+  vector3& divide(const double& p); //divides by p, unless it is zero, in which case ignore.
 	//void sum(const vector3& addedVector); //adds a vector to this class's vector
 
 	coord3 printvector(); //prints coords

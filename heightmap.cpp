@@ -193,3 +193,16 @@ void heightmap::setPerlinFrequency(const double& newFreq)
   {
   mapPerlin.SetFrequency(newFreq);
   }
+
+ALLEGRO_COLOR heightmap::lerp(ALLEGRO_COLOR c1, const ALLEGRO_COLOR &c2, const double &interpolate)
+  {
+  c1.r *= 1 - interpolate;
+  c1.g *= 1 - interpolate;
+  c1.b *= 1 - interpolate;
+  c1.a *= 1 - interpolate;
+  c1.r += c2.r * interpolate;
+  c1.b += c2.b * interpolate;
+  c1.g += c2.g * interpolate;
+  c1.a += c2.a * interpolate;
+  return c1;
+  }
