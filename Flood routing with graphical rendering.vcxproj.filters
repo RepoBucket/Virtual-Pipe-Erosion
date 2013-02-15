@@ -38,10 +38,10 @@
     <ClCompile Include="heightmap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="physicalvector.cpp">
+    <ClCompile Include="layereddata.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layereddata.cpp">
+    <ClCompile Include="vector3.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -58,13 +58,13 @@
     <ClInclude Include="heightmap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="physicalvector.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="layereddata.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="togglelatch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vector3.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

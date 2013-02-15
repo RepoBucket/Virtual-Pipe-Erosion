@@ -32,36 +32,32 @@ void boolVector::clear()
     *it = false;
   }
 
-double transientLayer::getHeight()
+double transientLayer::getHeight() const
   {
-  double height = 0;
+  double theight = 0;
   for (int counter = 0; counter < heights.size(); counter++)
     {
-    height += heights.at(counter);
+    theight += heights.at(counter);
     }
-  return height;
+  return theight;
   }
 
-double cell::getHeight()
+double cell::getHeight() const
   {
-  height = 0;
+  double tempHeight = 0;
   for (int counter = 0; counter < layers.size(); counter++)
     {
-    height += layers.at(counter).height;
+    tempHeight += layers.at(counter).height;
     }
-  height += sediments.getHeight();
+  tempHeight += sediments.getHeight();
   //height += fluid;
   return height;
   }
 
-double cell::getTotalHeight()
+double cell::getTotalHeight() const
   {
   double totalheight = 0;
-  for (int counter = 0; counter < layers.size(); counter++)
-    {
-    totalheight += layers.at(counter).height;
-    }
-  totalheight += sediments.getHeight();
+  totalheight = getHeight();
   totalheight += fluid;
   return totalheight;
   }
@@ -76,27 +72,24 @@ void cell::calculateVelocity()
     {
     it->first.scale(it->second);
     finalVelocity += it->first;
-    //totalfluidadded += it->second;
+    totalfluidadded += it->second;
     fluid += it->second;
     }
-  velocity = finalVelocity;
 
-  /*if (totalfluidadded != 0)
+  if (totalfluidadded != 0)
     {
-    velocity = finalVelocity.divide(totalfluidadded);
-    fluid = totalfluidadded;
+    velocity = finalVelocity / fluid;
     }
-  else
-    fluid = 0;*/
+
   inputs.clear();
   }
 
 ErosionHeightmap::ErosionHeightmap(const int& width, const int& height)
-  : w(width), h(height), thresholdSpeed(0.1), waterMap(w, h)
+  : w(width), h(height), thresholdSpeed(100), waterMap(w, h)
   {
   cell buffercell;
   nullcell.nullcell = true;
-  nullcell.height = 100;
+  nullcell.height = 10000;
   terrain = al_create_bitmap(w, h);
 
   for(int xcounter = 0; xcounter < w; xcounter++)
@@ -141,7 +134,7 @@ void ErosionHeightmap::generateV()
   layer bufferlayer;
   bufferlayer.mat = matDict.lookup(1);
 
-  double current = 50;
+  double current = 500;
   bool add = false;
 
   for (int ycounter = 0; ycounter < h; ycounter++)
@@ -153,13 +146,34 @@ void ErosionHeightmap::generateV()
       at(xcounter, ycounter).getHeight();
       }
     if (add)
-      current += 100.0f / h;
+      current += 1000.0f / (double)h;
     else if (current > 0)
-      current -= 100.0f / (double)h;
+      current -= 1000.0f / (double)h;
     else add = true;
     }
     heightmap2 = heightmap1;  
   }
+
+void ErosionHeightmap::generateTest()
+  {
+  layer bufferlayer;
+  bufferlayer.mat = matDict.lookup(1);
+
+  for (int ycounter = 0; ycounter < h; ycounter++)
+    {
+    for (int xcounter = 0; xcounter < w; xcounter++)
+      {
+      if (xcounter%2)
+        bufferlayer.height = 0;
+      else bufferlayer.height = 10;
+        at(xcounter, ycounter).layers.push_back(bufferlayer);
+
+        at(xcounter, ycounter).getHeight();
+      }
+    }
+    heightmap2 = heightmap1;  
+  }
+
 
 cell& ErosionHeightmap::at(const int &x, const int &y)
   {
@@ -210,22 +224,41 @@ void ErosionHeightmap::swapQueues()
 
 double ErosionHeightmap::deltaIn(cell& thisCell, const cell& neighborCell)
   {
-  double returnval = adjustedHeight(thisCell) - neighborCell.height + neighborCell.fluid;
+  double returnval = adjustedHeight(thisCell) - neighborCell.getHeight() + neighborCell.fluid;
   if (returnval < 0)
     return 0;
   else 
     return returnval;
   }
 
+/*double ErosionHeightmap::deltaIn2(cell& thisCell, const cell& neighborCell)
+  {
+  double returnval = adjustedHeight2(thisCell) - neighborCell.height + neighborCell.fluid;
+  if (returnval < 0)
+    return 0;
+  else 
+    return returnval;
+  }*/
+
 double ErosionHeightmap::adjustedHeight(cell & input)
   {
   // I(x,y) = H(x,y) + Kf * F(x,y) /// v Choose the bigger one, 0 or 1-0.05*velocity.
-  if (input.velocity.length <= 0.00001)
+  if (input.velocity.length <= 0.01)
     return input.getTotalHeight();
   else
     return input.getHeight() + (0 > (1 - 0.05 * input.velocity.length) ? 0 : (1 - 0.05 * input.velocity.length))
            * input.fluid;
   }
+
+/*double ErosionHeightmap::adjustedHeight2(cell & input)
+  {
+  // I(x,y) = H(x,y) + Kf * F(x,y) /// v Choose the bigger one, 0 or 1-0.05*velocity.
+  if (input.velocity.length <= 0.01)
+    return input.getTotalHeight();
+  else
+    return input.getHeight() + (0 > (1 - 0.05 * input.velocity.length) ? 0 : (1 - 0.05 * input.velocity.length))
+           * input.fluid;
+  }*/
 
 vector3 ErosionHeightmap::averageGradient(cell & input, const int& x, const int& y)
   {
@@ -436,7 +469,7 @@ void ErosionHeightmap::distribute(cell& thisCell, const pair<double, double>& co
     }
   }
 
-void ErosionHeightmap::distribute(cell &thisCell, const pair<double,double>& originalCoords, const pair<double,double>& targetCoords)
+void ErosionHeightmap::distribute(cell &thisCell, const vector3& originalVector, const pair<double,double>& originalCoords, const pair<double,double>& targetCoords)
   {
   double topleft, topright, bottomleft, bottomright; //are areas
   pair<double, double> baseCoords;
@@ -483,8 +516,14 @@ void ErosionHeightmap::distribute(cell &thisCell, const pair<double,double>& ori
     }
 
   // Push the remainder of the water onto the cell's input.
-  write(originalCoords.first, originalCoords.second).inputs.push_back(pair<vector3, double>(thisCell.velocity, thisCell.fluid - sum));
+  write(originalCoords.first, originalCoords.second).inputs.push_back(pair<vector3, double>(originalVector, thisCell.fluid - sum));
   writeToQueue->push(pair<int,int>(originalCoords.first, originalCoords.second));
+  }
+
+vector3 ErosionHeightmap::equation16(vector3 input)
+  {
+  input.setVector(input.x * -1, input.y * -1, -1 * pow(input.x,2) - pow(input.y, 2));
+  return input;
   }
 
 void ErosionHeightmap::distributeByGradient(cell & input, const int& x, const int& y)
@@ -497,43 +536,60 @@ void ErosionHeightmap::distributeByGradient(cell & input, const int& x, const in
       {
       topleft.setVector(+1 * In, -1 * In, 0);
       topleft /= root2;
+      topleft = equation16(topleft);
       }
   
   In = deltaIn(input, at(x, y-1));
     if (In != 0)
+      {
       top.setVector(0, -1 * In, 0);
+      top = equation16(top);
+      }
 
   In = deltaIn(input, at(x+1, y-1));
     if (In != 0)
       {
       topright.setVector(-1 * In , -1 * In, 0); 
       topright /= root2;
+      //equation 16.
+      topright = equation16(topright);
       }
 
   In = deltaIn(input, at(x-1, y));
     if (In != 0)
+      {
       left.setVector(1 * In, 0, 0);
+      left = equation16(left);
+      }
 
   In = deltaIn(input, at(x+1, y));
     if (In != 0)
+      {
       right.setVector(-1 * In, 0, 0);
+      right = equation16(right);
+      }
 
   In = deltaIn(input, at(x-1, y+1));
     if (In != 0)
       {
       bottomleft.setVector(1 * In, -1 * In, 0);
       bottomleft  /= root2;
+      bottomleft = equation16(bottomleft);
       }
 
   In = deltaIn(input, at(x, y+1));
     if (In != 0)
+      {
       bottom.setVector(0, In, 0);
+      bottom = equation16(bottom);
+      }
 
   In = deltaIn(input, at(x, y+1));
     if (In != 0)
       {
       bottomright.setVector(-1 * In, In, 0);
       bottomright /= root2;
+      bottomright = equation16(bottomright);
       }
 
     double magnitudeSum = topleft.length + top.length + topright.length + 
@@ -547,7 +603,7 @@ void ErosionHeightmap::distributeByGradient(cell & input, const int& x, const in
 
     // Push it.
     if (topleft.length != 0) {   
-      buffer.first = topleft; 
+      buffer.first = topleft;
       buffer.second = topleft.length / magnitudeSum * adjustedSum;
        
       write(x-1, y-1).inputs.push_back(buffer);
@@ -555,49 +611,56 @@ void ErosionHeightmap::distributeByGradient(cell & input, const int& x, const in
       }
 
     if (top.length != 0) {
-      buffer.first = top; buffer.second = top.length / magnitudeSum * adjustedSum;
+      buffer.first = top; 
+      buffer.second = top.length / magnitudeSum * adjustedSum;
        
       write(x, y-1).inputs.push_back(buffer);
       writeToQueue->push(pair<int, int>(x, y-1));
       }
 
     if (topright.length != 0) {
-      buffer.first = topright; buffer.second = topright.length / magnitudeSum * adjustedSum;
+      buffer.first = topright; 
+      buffer.second = topright.length / magnitudeSum * adjustedSum;
        
       write(x+1, y-1).inputs.push_back(buffer);
       writeToQueue->push(pair<int, int>(x+1, y-1));
       }
 
     if (left.length != 0) {
-      buffer.first = left; buffer.second = left.length / magnitudeSum * adjustedSum;
+      buffer.first = left; 
+      buffer.second = left.length / magnitudeSum * adjustedSum;
        
       write(x-1, y).inputs.push_back(buffer);
       writeToQueue->push(pair<int, int>(x-1, y));
       }
 
     if (right.length != 0) {
-      buffer.first = right; buffer.second = right.length / magnitudeSum * adjustedSum;
+      buffer.first = right; 
+      buffer.second = right.length / magnitudeSum * adjustedSum;
        
       write(x+1, y).inputs.push_back(buffer);
       writeToQueue->push(pair<int, int>(x+1, y));
       }
 
     if (bottomleft.length != 0) {
-      buffer.first = bottomleft; buffer.second = bottomleft.length / magnitudeSum * adjustedSum;
+      buffer.first = bottomleft; 
+      buffer.second = bottomleft.length / magnitudeSum * adjustedSum;
        
       write(x-1, y+1).inputs.push_back(buffer);
       writeToQueue->push(pair<int, int>(x-1, y+1));
       }
 
     if (bottom.length != 0) {
-      buffer.first = bottom; buffer.second = bottom.length / magnitudeSum * adjustedSum;
+      buffer.first = bottom;
+      buffer.second = bottom.length / magnitudeSum * adjustedSum;
        
       write(x, y+1).inputs.push_back(buffer);
       writeToQueue->push(pair<int, int>(x, y+1));
       }
 
     if (bottomright.length != 0) {
-      buffer.first = bottomright; buffer.second = bottomright.length / magnitudeSum * adjustedSum;
+      buffer.first = bottomright; 
+      buffer.second = bottomright.length / magnitudeSum * adjustedSum;
        
       write(x+1, y+1).inputs.push_back(buffer);
       writeToQueue->push(pair<int, int>(x+1, y+1));
@@ -624,6 +687,7 @@ void ErosionHeightmap::step()
   vector3 acceleration;
   vector3 finalAcceleration;
   vector3 copyOfCellVelocity;
+  vector3 copy2;
   double minusone = -1;
 
   while (!currentQueue->empty())
@@ -641,6 +705,7 @@ void ErosionHeightmap::step()
         {
         if (currentcell.velocity.length >= thresholdSpeed)
           {
+          copy2 = currentcell.velocity;
           // add the acceleration...
           acceleration = averageGradient(currentcell, current.first, current.second);
           acceleration *= minusone;
@@ -663,7 +728,7 @@ void ErosionHeightmap::step()
           copyOfCellVelocity.normalize();
           movedCoords.first += copyOfCellVelocity.x;
           movedCoords.second += copyOfCellVelocity.y;
-          distribute(currentcell, current, movedCoords);
+          distribute(currentcell, copy2, current, movedCoords);
           //Distribute() pushes.
           }
         else

@@ -16,23 +16,27 @@ bool Engine::EngineInit(map<int,bool> errormap)
   thisRegion->tempRender();
   if (thisRegion->landmap != 0) return true;
   else return false;*/
-  thisErosion = new ErosionHeightmap(128,128);
-  thisErosion->generateV();
+  thisErosion = new ErosionHeightmap(2,1);
+  thisErosion->generateTest();
  /* thisErosion->addWater(64,1,10);
   thisErosion->addWater(12,23,10);
   thisErosion->addWater(72,4,10);*/
  /// thisErosion->step();
+    thisErosion->addWater(0, 0, 10);
   thisErosion->render();
-
+  
 
   return true;
   }
 
+
+
 void Engine::Update()
   {
-  //thisRegion->landmap;
+  // thisRegion->landmap;
   // thisErosion->addWater(1,1,10);
-  thisErosion->addWater(64,1,100);
+    
+
   thisErosion->step();
   thisErosion->render();
   }

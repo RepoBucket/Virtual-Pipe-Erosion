@@ -1,5 +1,5 @@
 #pragma once
-#include "physicalvector.h"
+#include "vector3.h"
 #include "heightmap.h"
 #include <vector>
 #include <queue>
@@ -28,7 +28,7 @@ struct transientLayer
   {
   vector<map<int,material>::iterator> materials;
   map<int, double> heights;
-  double getHeight();
+  double getHeight() const;
   };
 
 struct cell
@@ -44,12 +44,19 @@ struct cell
   vector<layer> layers;
   transientLayer sediments;
   double height;
-  double getHeight();
-  double getTotalHeight();
+  virtual double getHeight() const;
+  virtual double getTotalHeight() const;
 
   bool updated;
   bool heightChecked;
   bool nullcell;
+  };
+
+struct nullCell: public cell
+  {
+  nullCell() {height = 10000;}
+  double getHeight() {return height;}
+  double getTotalHeight() {return height;}
   };
 
 struct materialDictionary
@@ -92,6 +99,7 @@ class ErosionHeightmap
   ErosionHeightmap(const int& width, const int& height);
   void generate(const int &layers);
   void generateV(); //Test. Generates a V-shaped heightmap.
+  void generateTest(); // ad hoc
   cell& at(const int & x, const int & y);
   cell& write(const int& x, const int &y); //To the write map.
   void addWater(const int& x, const int& y, const double& thisFluid);
@@ -103,17 +111,20 @@ class ErosionHeightmap
   materialDictionary matDict;
 
   protected:
-    cell nullcell;
+    nullCell nullcell;
 
     void resetUpdatedFlags();
     double deltaIn(cell& thisCell, const cell& neighborCell); //delta I
+    //double deltaIn2(cell& thisCell, const cell& neighborCell); //delta I, without the quickfix for slow speed flow.
     double adjustedHeight(cell & input);
+    double adjustedHeight2(cell & input); //adjustedHeight without the quickfix.
     vector3 averageGradient(cell & input, const int& x, const int& y);
     void distributeByGradient(cell & input, const int& x, const int& y);
     vector3 normal(cell& thisCell, const int& x, const int& y);
     vector3 normal(const vector3& gradient);
+    vector3 equation16 (vector3 input);
     void distribute(cell& thisCell, const pair<double, double>& coords);
-    void distribute(cell &thisCell, const pair<double,double>& originalCoords, const pair<double,double>& targetCoords); //Newer version of distribution.
+    void distribute(cell &thisCell, const vector3& originalVector, const pair<double,double>& originalCoords, const pair<double,double>& targetCoords); //Newer version of distribution.
     void dampVelocity();
     void clearCell();
     void setCellToClear(cell* clearerCell);

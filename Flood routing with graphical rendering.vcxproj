@@ -152,7 +152,7 @@
     <ClCompile Include="heightmap.cpp" />
     <ClCompile Include="layereddata.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="physicalvector.cpp" />
+    <ClCompile Include="vector3.cpp" />
     <ClCompile Include="region.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -160,7 +160,7 @@
     <ClInclude Include="Engine.h" />
     <ClInclude Include="heightmap.h" />
     <ClInclude Include="layereddata.h" />
-    <ClInclude Include="physicalvector.h" />
+    <ClInclude Include="vector3.h" />
     <ClInclude Include="region.h" />
     <ClInclude Include="togglelatch.h" />
   </ItemGroup>
