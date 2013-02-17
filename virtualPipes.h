@@ -52,6 +52,9 @@ struct pipeCell
   double dissolvingConstant;
   double depositingConstant;
 
+  // Just because the border cells are different.
+  virtual double getAngleHeight(const pipeCell& thisCell) const;
+
   void setWaterHeight(const double& newWaterHeight);
   void setTerrainHeight(const double& newTerrainHeight);
   double netFlux() const;
@@ -79,21 +82,19 @@ class WallCell : public pipeCell //Acts as a wall.
     virtual double getTerrainHeight() const {return numeric_limits<double>::max();}
     virtual double getWaterHeight() const {return 0;}
     virtual double getTotalHeight() const {return numeric_limits<double>::max();}
+    virtual double getAngleHeight(const pipeCell& thisCell) const;
   };
 
 class VirtualPipeErosion
   {
   public:
-    VirtualPipeErosion(const int& width, const int& height, const double& cellSize);
+    VirtualPipeErosion(const int& width, const int& height, const double& cellSize, const bool& random = false);
     void addWater(const int& x, const int& y, const double& amount);
     pipeCell& read(const int& x, const int& y);
     pipeCell& write(const int& x, const int& y);
     void step(const double& time);
-    //void setTime(const double& time);
-    //void threadedStep(const int& startRow, const int& endRow);
-    double heightDifference(const int& x1, const int& y1, const int& x2, const int& y2);
-    double scalingK(const pipeCell& thisCell);
-    void calculateFlux(pipeCell& thisCell); //Equation 2, for all the fluxes.
+    void evaporate(const double& amount);
+    
     void render();
 
     //For threadedness
@@ -108,10 +109,17 @@ class VirtualPipeErosion
 
     double geth();
 
+    double erodeTimer;
+    double maxErodeTimer;
+
   private:
+    void stepThroughErosion(const int& startRow, const int& endRow);
     void stepThroughFlux(const int& startRow, const int& endRow); // For multithreading.
     void stepThroughVector(const int& startRow, const int& endRow);
+    void calculateFlux(pipeCell& thisCell); //Equation 2, for all the fluxes.
     void cleanUp(const int& startRow, const int& endRow);
+    double heightDifference(const int& x1, const int& y1, const int& x2, const int& y2);
+    double scalingK(const pipeCell& thisCell);
     double getSine(const pipeCell& thisCell);
     double findNewSediment(const pipeCell& thisCell);
     double bilinearSediment(const double& x, const double&y);

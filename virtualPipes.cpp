@@ -1,6 +1,7 @@
 #include "virtualPipes.h"
 #include <cmath>
 #include "noise.h"
+#include <ctime>
 #include "colors.h"
 
 
@@ -14,7 +15,7 @@ pipeCell::pipeCell()
 pipeCell::pipeCell(const int& newx, const int& newy, const double& cellSize) 
   : x(newx), y(newy), fluxLeft(0), fluxRight(0), fluxTop(0), fluxBottom(0),
   suspendedSediment(0), terrainHeight(0), waterHeight(0), lengthX(cellSize), lengthY(cellSize)
-  , tempKc(15), dissolvingConstant(0.3), depositingConstant(0.3)
+  , tempKc(15), dissolvingConstant(0.3), depositingConstant(0.3), sedimentCapacity(0)
   {
 
   }
@@ -30,19 +31,19 @@ void pipeCell::setTerrainHeight(const double& newTerrainHeight)
   terrainHeight = newTerrainHeight;
   }
 
-void pipeCell::addToWaterHeight(const double& moreHeight)
+void pipeCell::addToTerrainHeight(const double& moreHeight)
   {
   terrainHeight += moreHeight;
-  }
-
-double pipeCell::getWaterHeight() const
-  {
-  return waterHeight;
   }
 
 void pipeCell::addToWaterHeight(const double& moreWater)
   {
   waterHeight += moreWater;
+  }
+
+double pipeCell::getWaterHeight() const
+  {
+  return waterHeight;
   }
 
 void pipeCell::setWaterHeight(const double& newWaterHeight)
@@ -83,6 +84,16 @@ double pipeCell::getSedimentCapacityConstant() const
   return tempKc;
   }
 
+double pipeCell::getAngleHeight(const pipeCell& thisCell) const
+  {
+  return getTerrainHeight();
+  }
+
+double WallCell::getAngleHeight(const pipeCell& thisCell) const
+  {
+  return thisCell.getTerrainHeight();
+  }
+
 /////////////
 //
 //
@@ -90,9 +101,12 @@ double pipeCell::getSedimentCapacityConstant() const
 //
 /////////////
 
-VirtualPipeErosion::VirtualPipeErosion(const int& width, const int& height, const double& cellSize)
-  : w(width), h(height), gravityConstant(9.8), pipeCrossSectionalArea(1)
+VirtualPipeErosion::VirtualPipeErosion(const int& width, const int& height, const double& cellSize, const bool& random)
+  : w(width), h(height), gravityConstant(9.8), pipeCrossSectionalArea(1), erodeTimer(0)
   {
+  if (random)
+    Perlingen.SetSeed(time(0));
+
   for (int ycounter = 0; ycounter < h; ycounter++)
     for (int xcounter = 0; xcounter < w; xcounter++)
       list1.push_back(pipeCell(xcounter, ycounter, cellSize));
@@ -107,9 +121,16 @@ VirtualPipeErosion::VirtualPipeErosion(const int& width, const int& height, cons
 void VirtualPipeErosion::step(const double& time)
   {
   currentTimeStep = time;
-  stepThroughFlux(0, h-1);
-  stepThroughVector(0, h-1);
-  cleanUp(0, h-1);
+  maxErodeTimer = 1;// / time;
+  stepThroughFlux(0, h);
+  stepThroughVector(0, h);
+  erodeTimer++;
+  if (erodeTimer >= maxErodeTimer)
+    {
+    stepThroughErosion(0, h);
+    erodeTimer = 0;
+    }
+  cleanUp(0, h);
   swapMaps();
   }
 
@@ -139,8 +160,19 @@ void VirtualPipeErosion::stepThroughVector(const int& startRow, const int& endRo
       // Change the volumes.
        write(xcounter, ycounter).setWaterHeight(updateWaterHeight(write(xcounter, ycounter)));
        write(xcounter, ycounter).flow = findFlowVector(write(xcounter, ycounter));
-       write(xcounter, ycounter).sedimentCapacity = findSedimentCapacity(write(xcounter, ycounter));
-       write(xcounter, ycounter).sedimentCapacity = findNewSediment(write(xcounter, ycounter));
+      }
+    }
+  }
+
+void VirtualPipeErosion::stepThroughErosion(const int& startRow, const int& endRow)
+  {
+  for (int ycounter = startRow; ycounter < endRow; ycounter++)
+    {
+    for (int xcounter = 0; xcounter < w; xcounter++)
+      {
+      write(xcounter, ycounter).sedimentCapacity = findSedimentCapacity(write(xcounter, ycounter));
+      erosionDeposition(write(xcounter,ycounter));
+     // write(xcounter, ycounter).sedimentCapacity = findNewSediment(write(xcounter, ycounter));
       }
     }
   }
@@ -182,13 +214,13 @@ void VirtualPipeErosion::cleanUp(const int& startRow, const int& endRow)
 
 double VirtualPipeErosion::findSedimentCapacity(const pipeCell& thisCell)
   {
-  return thisCell.getSedimentCapacityConstant() * min(0.01,getSine(thisCell)) * thisCell.flow.length;
+  return thisCell.getSedimentCapacityConstant() * max(0.01, getSine(thisCell)) * thisCell.flow.length;
   }
 
 double VirtualPipeErosion::getSine(const pipeCell& thisCell)
   {
-  double angle1 = (write(thisCell.x - 1, thisCell.y).getTerrainHeight() - write(thisCell.x + 1, thisCell.y).getTerrainHeight())/2;
-  double angle2 = (write(thisCell.x, thisCell.y - 1).getTerrainHeight() - write(thisCell.x, thisCell.y+1).getTerrainHeight())/2;
+  double angle1 = (write(thisCell.x - 1, thisCell.y).getAngleHeight(thisCell) - write(thisCell.x + 1, thisCell.y).getAngleHeight(thisCell))/2;
+  double angle2 = (write(thisCell.x, thisCell.y - 1).getAngleHeight(thisCell) - write(thisCell.x, thisCell.y+1).getAngleHeight(thisCell))/2;
   angle1 = atan(angle1);
   angle2 = atan(angle2);
   return sin((angle1 + angle2)/2);
@@ -196,18 +228,18 @@ double VirtualPipeErosion::getSine(const pipeCell& thisCell)
 
 void VirtualPipeErosion::erosionDeposition(pipeCell& thisCell)
   {
-  if (thisCell.sedimentCapacity > thisCell.suspendedSediment)
-    {
-    double movedSediment = thisCell.getTerrainHeight() - thisCell.dissolvingConstant * (thisCell.sedimentCapacity - thisCell.suspendedSediment);
-    thisCell.addToTerrainHeight(-movedSediment);
-    thisCell.suspendedSediment += movedSediment;
-    }
-  else
-    {
-    double depositedSediment = thisCell.getTerrainHeight() + thisCell.depositingConstant * (thisCell.suspendedSediment - thisCell.sedimentCapacity);
-    thisCell.addToTerrainHeight(depositedSediment);
-    thisCell.suspendedSediment -= depositedSediment;
-    }
+    if (thisCell.sedimentCapacity > thisCell.suspendedSediment)
+      {
+      double movedSediment = thisCell.dissolvingConstant * (thisCell.sedimentCapacity - thisCell.suspendedSediment);
+      thisCell.addToTerrainHeight(-movedSediment);
+      thisCell.suspendedSediment += movedSediment;
+      }
+    else
+      {
+      double depositedSediment = thisCell.depositingConstant * (thisCell.suspendedSediment - thisCell.sedimentCapacity);
+      thisCell.addToTerrainHeight(depositedSediment);
+      thisCell.suspendedSediment -= depositedSediment;
+      }
   }
 
 double VirtualPipeErosion::max(const double& left, const double& right)
@@ -272,6 +304,9 @@ vector3 VirtualPipeErosion::findFlowVector(const pipeCell& thisCell)
   double y = write(thisCell.x, thisCell.y - 1).fluxBottom + thisCell.fluxBottom
               - write(thisCell.x, thisCell.y + 1).fluxTop - thisCell.fluxTop;
 
+  x /= 2;
+  y /= 2;
+
   return vector3(x, y, 0);
   }
 
@@ -330,10 +365,11 @@ void VirtualPipeErosion::render()
       }
     renderMap.scale(0,1);
 
-    ALLEGRO_COLOR red; ALLEGRO_COLOR darkRed, blue;
+    ALLEGRO_COLOR red; ALLEGRO_COLOR darkRed, blue, green;
     red = al_map_rgb(255,0,0);
-    blue = al_map_rgb(0,0,255);
+    blue = al_map_rgb(0,0,200);
     darkRed = al_map_rgb(50,0,0);
+    green = al_map_rgb(0,120,0);
 
     al_set_target_bitmap(terrain);
     al_lock_bitmap(al_get_target_bitmap(), al_get_bitmap_format(terrain), ALLEGRO_LOCK_READWRITE);
@@ -341,7 +377,12 @@ void VirtualPipeErosion::render()
       for (int xcounter = 0; xcounter < w; xcounter++)
         {
         if (read(xcounter, ycounter).getWaterHeight() > 0)
-          al_put_pixel(xcounter, ycounter, blue);
+          {
+          if (read(xcounter, ycounter).suspendedSediment > 0.01)
+            al_put_pixel(xcounter, ycounter, green);
+          else
+            al_put_pixel(xcounter, ycounter, blue);
+          }
         else
           al_put_pixel(xcounter, ycounter, heightmap::lerp(darkRed, red, renderMap.at(xcounter,ycounter)));
         }
@@ -362,6 +403,8 @@ void VirtualPipeErosion::operator()(const int& startRow, const int& endRow, cons
     stepThroughVector(startRow, endRow);
   else if (mode == 3)
     cleanUp(startRow, endRow);
+  else if (mode == 4)
+    stepThroughErosion(startRow, endRow);
   else
     return;
   }
@@ -374,4 +417,16 @@ void VirtualPipeErosion::finishErosion()
 double VirtualPipeErosion::geth()
   {
   return h;
+  }
+
+void VirtualPipeErosion::evaporate(const double& amount)
+  {
+  if (amount > 1 || amount < 0)
+    return;
+  else
+    for (int ycounter = 0; ycounter < h; ycounter++)
+      for (int xcounter = 0; xcounter < w; xcounter++)
+        {
+        read(xcounter, ycounter).setWaterHeight(read(xcounter, ycounter).getWaterHeight()*amount);
+        }
   }

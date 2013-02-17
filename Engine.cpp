@@ -17,11 +17,11 @@ bool Engine::EngineInit(map<int,bool> errormap)
   {
   al_init_primitives_addon();
   
-  Erosion = new VirtualPipeErosion(128,128,1);
+  Erosion = new VirtualPipeErosion(256,256,1);
 
   //thisErosion->generateTest();
   Erosion->generate();
-  Erosion->addWater(0, 0, 10);
+  //Erosion->addWater(0, 0, 10);
   Erosion->render();
   stepCounter = 0;
 
@@ -34,9 +34,14 @@ void Engine::Update()
   {
   // thisRegion->landmap;
   int h = Erosion->geth();  
-  //Erosion->addWater(8, 64, 1);
+ // Erosion->addWater(64, 0, 5);
+  //Erosion->addWater(31, 0, 5);
+  Erosion->addWater(90, 105, 5);
+  Erosion->addWater(88, 43, 5);
 
- /* Erosion->prepErosion(0.1);
+  //Erosion->evaporate(0.7);
+  
+  Erosion->prepErosion(0.1);
   boost::thread flux1(&VirtualPipeErosion::operator(), boost::ref(Erosion), 0, h/4, 0);
   boost::thread flux2(&VirtualPipeErosion::operator(), boost::ref(Erosion), h/4, 2*h/4, 0);
   boost::thread flux3(&VirtualPipeErosion::operator(), boost::ref(Erosion), 2*h/4, 3*h/4, 0);
@@ -59,15 +64,26 @@ void Engine::Update()
 
   Erosion->operator()(0, h, 3);
 
-  Erosion->finishErosion();*/
+  boost::thread erosion1(&VirtualPipeErosion::operator(), boost::ref(Erosion), 0, h/4, 4);
+  boost::thread erosion2(&VirtualPipeErosion::operator(), boost::ref(Erosion), h/4, 2*h/4, 4);
+  boost::thread erosion3(&VirtualPipeErosion::operator(), boost::ref(Erosion), 2*h/4, 3*h/4, 4);
+  boost::thread erosion4(&VirtualPipeErosion::operator(), boost::ref(Erosion), 3*h/4, h, 4);
+
+  erosion1.join();
+  erosion2.join();
+  erosion3.join();
+  erosion4.join();
+
+  Erosion->finishErosion();
   
-  Erosion->step(0.1);
-  if (stepCounter > 10)
+ // Erosion->step(0.1);
+  if (stepCounter > 2)
     {
     Erosion->render();
     stepCounter = 0;
     }
   else stepCounter++;
+  //Erosion->render();
   }
 
 void Engine::Render(ALLEGRO_DISPLAY *root)
