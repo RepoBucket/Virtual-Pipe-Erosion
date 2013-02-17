@@ -43,9 +43,22 @@ void vector3::normalize()
 	if (length != 0)
 		{
 		x = x / length;
-        y = y / length;
-        z = z / length;
-        length = 1;
+    y = y / length;
+    z = z / length;
+    findLength();
+		}
+	}
+
+void vector3::normalize2()
+	{
+	//if the length of the vector is 0, you cannot normalize it. Therefore check that x and y are not zero.
+  double templength = sqrt(x*x+y*y);
+	if (templength != 0)
+		{
+		x = x / templength;
+    y = y / templength;
+    z = z / templength;
+    findLength();
 		}
 	}
 
@@ -183,9 +196,14 @@ vector3 vector3::operator*(const double &right) const
   return left;
   }
 
-vector3 vector3::operator/=(const double& right) const
+vector3 vector3::operator/(const double& right) const
   {
   vector3 left(*this);
   left /= right;
   return left;
+  }
+
+bool vector3::isValid()
+  {
+  return (x==x) && (y==y) && (z==z);
   }

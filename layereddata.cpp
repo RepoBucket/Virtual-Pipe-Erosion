@@ -2,6 +2,7 @@
 //#include "heightmap.h"
 //#include "region.h" //For the color arithmetic.
 #include <cmath>
+#include <iostream>
 
 cell::cell()
   :fluid(0), updated(false), height(0)
@@ -51,7 +52,7 @@ double cell::getHeight() const
     }
   tempHeight += sediments.getHeight();
   //height += fluid;
-  return height;
+  return tempHeight;
   }
 
 double cell::getTotalHeight() const
@@ -66,26 +67,20 @@ void cell::calculateVelocity()
   {
   //To empty the input vector and make it valid for another round of fluid simulation.
   fluid = 0;
-  double totalfluidadded = 0;
   vector3 finalVelocity;
   for (auto it = inputs.begin(); it< inputs.end(); it++)
     {
     it->first.scale(it->second);
     finalVelocity += it->first;
-    totalfluidadded += it->second;
     fluid += it->second;
     }
-
-  if (totalfluidadded != 0)
-    {
     velocity = finalVelocity / fluid;
-    }
 
   inputs.clear();
   }
 
 ErosionHeightmap::ErosionHeightmap(const int& width, const int& height)
-  : w(width), h(height), thresholdSpeed(100), waterMap(w, h)
+  : w(width), h(height), thresholdSpeed(0.1), waterMap(w, h)
   {
   cell buffercell;
   nullcell.nullcell = true;
@@ -163,17 +158,18 @@ void ErosionHeightmap::generateTest()
     {
     for (int xcounter = 0; xcounter < w; xcounter++)
       {
-      if (xcounter%2)
+      if (xcounter%3 == 0)
+        bufferlayer.height = 10;
+      else if (xcounter%3 == 1)
         bufferlayer.height = 0;
-      else bufferlayer.height = 10;
-        at(xcounter, ycounter).layers.push_back(bufferlayer);
+      else bufferlayer.height = 5;
 
+        at(xcounter, ycounter).layers.push_back(bufferlayer);
         at(xcounter, ycounter).getHeight();
       }
     }
     heightmap2 = heightmap1;  
   }
-
 
 cell& ErosionHeightmap::at(const int &x, const int &y)
   {
@@ -231,15 +227,6 @@ double ErosionHeightmap::deltaIn(cell& thisCell, const cell& neighborCell)
     return returnval;
   }
 
-/*double ErosionHeightmap::deltaIn2(cell& thisCell, const cell& neighborCell)
-  {
-  double returnval = adjustedHeight2(thisCell) - neighborCell.height + neighborCell.fluid;
-  if (returnval < 0)
-    return 0;
-  else 
-    return returnval;
-  }*/
-
 double ErosionHeightmap::adjustedHeight(cell & input)
   {
   // I(x,y) = H(x,y) + Kf * F(x,y) /// v Choose the bigger one, 0 or 1-0.05*velocity.
@@ -250,22 +237,14 @@ double ErosionHeightmap::adjustedHeight(cell & input)
            * input.fluid;
   }
 
-/*double ErosionHeightmap::adjustedHeight2(cell & input)
-  {
-  // I(x,y) = H(x,y) + Kf * F(x,y) /// v Choose the bigger one, 0 or 1-0.05*velocity.
-  if (input.velocity.length <= 0.01)
-    return input.getTotalHeight();
-  else
-    return input.getHeight() + (0 > (1 - 0.05 * input.velocity.length) ? 0 : (1 - 0.05 * input.velocity.length))
-           * input.fluid;
-  }*/
-
 vector3 ErosionHeightmap::averageGradient(cell & input, const int& x, const int& y)
   {
   vector3 topleft, top, topright, left, right, bottomleft, bottom, bottomright;
   const double sqrt2(1.41421356237);
 
   // Per the paper.
+
+  // This time per what I think it is.
   double In = deltaIn(input, at(x-1, y-1));
     if (In != 0)
       {
@@ -391,6 +370,11 @@ vector3 ErosionHeightmap::normal(const vector3& gradient)
   return vector3::cross(horizontal, vertical);
   }
 
+vector3 ErosionHeightmap::normal(const double& x, const double& y)
+  {
+  return vector3(x, y, -1);
+  }
+
 void ErosionHeightmap::resetUpdatedFlags()
   {
   int maxcounter = currentQueue->size();
@@ -415,7 +399,7 @@ void ErosionHeightmap::dampVelocity()
     {
     current = writeToQueue->front();
     writeToQueue->pop();
-    write(current.first, current.second).velocity *= 0.7f; // 0.7 = dampening vector.
+    write(current.first, current.second).velocity *= 0.7;// 0.7 = dampening vector.
     writeToQueue->push(current);
     }
   }
@@ -523,6 +507,12 @@ void ErosionHeightmap::distribute(cell &thisCell, const vector3& originalVector,
 vector3 ErosionHeightmap::equation16(vector3 input)
   {
   input.setVector(input.x * -1, input.y * -1, -1 * pow(input.x,2) - pow(input.y, 2));
+  return input;
+  }
+
+vector3 ErosionHeightmap::equation16_positive(vector3 input)
+  {
+  input.setVector(input.x, input.y, -1 * pow(input.x,2) - pow(input.y, 2));
   return input;
   }
 
@@ -666,7 +656,7 @@ void ErosionHeightmap::distributeByGradient(cell & input, const int& x, const in
       writeToQueue->push(pair<int, int>(x+1, y+1));
       }
 
-    buffer.first = vector3(); buffer.second = input.fluid - adjustedSum; //Write what's left back to the cell.
+    buffer.first = input.velocity; buffer.second = input.fluid - adjustedSum; //Write what's left back to the cell.
     if (buffer.second != 0)
       {
       write(x, y).inputs.push_back(buffer);
@@ -701,47 +691,50 @@ void ErosionHeightmap::step()
         // Average the gradient vectors.
     if (!currentcell.updated) //if this cell has already been updated, skip it.
       {
-      if (currentcell.fluid >= 0.0000000001) //if above threshold
+      if (currentcell.fluid >= 0.01) //if above threshold
         {
-        if (currentcell.velocity.length >= thresholdSpeed)
-          {
-          copy2 = currentcell.velocity;
-          // add the acceleration...
-          acceleration = averageGradient(currentcell, current.first, current.second);
-          acceleration *= minusone;
-          acceleration = normal(currentcell, current.first, current.second);
-          // Equation 16 below.
-          acceleration.setVector(acceleration.x * -1, acceleration.y * -1, -1 * acceleration.x * acceleration.x - acceleration.y * acceleration.y);
-          // Equation 18 below.
-          finalAcceleration = acceleration;
-          finalAcceleration /= acceleration.length;
-          finalAcceleration *= (acceleration.z / acceleration.length * 9.81);
-          // add velocity and acceleration.
-          currentcell.velocity += acceleration;
-          // After dividing the fluid into the neighboring cells, also divide the velocity and push it
-          // onto the cell's input vector. Multiplied by the fluid amount.
-          //This function also pushes coords onto the write-to queue.
-        // First, add the velocity to this cell's coords.
-          movedCoords.first = current.first;
-          movedCoords.second = current.second;
-          copyOfCellVelocity = currentcell.velocity;
-          copyOfCellVelocity.normalize();
-          movedCoords.first += copyOfCellVelocity.x;
-          movedCoords.second += copyOfCellVelocity.y;
-          distribute(currentcell, copy2, current, movedCoords);
-          //Distribute() pushes.
+       // if (!(currentcell.velocity.length < 0.0001)) //minimum
+         // {
+          if (currentcell.velocity.length >= thresholdSpeed)
+            {
+            copy2 = currentcell.velocity;
+            // add the acceleration...
+            acceleration = averageGradient(currentcell, current.first, current.second);
+            //          acceleration *= minusone;
+            acceleration = normal(acceleration.x, acceleration.y);
+            // Equation 16 below.
+            acceleration = equation16(acceleration);
+            // Equation 18 below.
+            finalAcceleration = acceleration;
+            finalAcceleration /= acceleration.length;
+            finalAcceleration *= (acceleration.z / acceleration.length * 9.81);
+            // add velocity and acceleration.
+            currentcell.velocity += acceleration;
+            // After dividing the fluid into the neighboring cells, also divide the velocity and push it
+            // onto the cell's input vector. Multiplied by the fluid amount.
+            //This function also pushes coords onto the write-to queue.
+            // First, add the velocity to this cell's coords.
+            movedCoords.first = current.first;
+            movedCoords.second = current.second;
+            copyOfCellVelocity = currentcell.velocity;
+            copyOfCellVelocity.normalize2();
+            movedCoords.first += copyOfCellVelocity.x;
+            movedCoords.second += copyOfCellVelocity.y;
+            distribute(currentcell, copy2, current, movedCoords);
+            //Distribute() pushes.
+            }
+          else
+            {
+            //If the velocity is below the threshold, proportion the water and move them accordingly.
+            // Again, ignore cells whose H+F is higher than this cell's H+F
+            // When each gradient is found, proportion the fluid according to each gradient's magnitude.
+            // Move.
+            // Push the velocity onto the cell's input vector, multiplied by the fluid amount.
+            distributeByGradient(currentcell, current.first, current.second); 
+            }
+          at(current.first, current.second).updated = true;
           }
-        else
-          {
-          //If the velocity is below the threshold, proportion the water and move them accordingly.
-          // Again, ignore cells whose H+F is higher than this cell's H+F
-          // When each gradient is found, proportion the fluid according to each gradient's magnitude.
-          // Move.
-          // Push the velocity onto the cell's input vector, multiplied by the fluid amount.
-          distributeByGradient(currentcell, current.first, current.second); 
-          }
-        at(current.first, current.second).updated = true;
-        } //If below threshold, procede straight to clearing the water.
+      //  }//If below threshold, procede straight to clearing the water.
       // Clear the cell's water and velocity.
       clearCell();
       }
@@ -757,6 +750,8 @@ void ErosionHeightmap::step()
     {
     coords = writeToQueue->front();
     write(coords.first, coords.second).calculateVelocity();
+    if (!write(coords.first, coords.second).velocity.isValid())
+      std::cout << coords.first << "," << coords.second << ": invalid velocity vector.\n";
     writeToQueue->pop();
     writeToQueue->push(coords);
     }
@@ -768,6 +763,7 @@ void ErosionHeightmap::step()
   swapMaps();
   swapQueues();
   //reset updated flags 
+  resetUpdatedFlags();
   
   }
 
@@ -777,9 +773,9 @@ void ErosionHeightmap::render()
   
   waterMap.clear();
   int numberofwaters = 0; // To check in watch mode.
-  for (int ycounter = 0; ycounter < w; ycounter++)
+  for (int ycounter = 0; ycounter < h; ycounter++)
     {
-    for (int xcounter = 0; xcounter < h; xcounter++)
+    for (int xcounter = 0; xcounter < w; xcounter++)
       //add shading or raytracing later~
       renderMap.at(xcounter, ycounter) = at(xcounter, ycounter).getHeight(); 
     }///Do it like this at first. Add shading for different depths of water laaater
@@ -809,8 +805,8 @@ void ErosionHeightmap::render()
   al_set_target_bitmap(terrain);
   al_lock_bitmap(al_get_target_bitmap(), al_get_bitmap_format(terrain), ALLEGRO_LOCK_READWRITE);
 
-  for (int ycounter = 0; ycounter < w; ycounter++)
-    for (int xcounter = 0; xcounter < h; xcounter++)
+  for (int ycounter = 0; ycounter < h; ycounter++)
+    for (int xcounter = 0; xcounter < w; xcounter++)
       {
       if (waterMap.at(xcounter, ycounter))
         {

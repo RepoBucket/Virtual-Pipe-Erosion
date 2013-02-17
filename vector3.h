@@ -41,12 +41,15 @@ public:
   void setVector(const double& x1, const double& y1, const double& z1);
   /**The vector is normalized, by dividing each coordinate by the length. The length is then set to 1. If the length is 0, no operations are performed.**/
   void normalize();
+  void normalize2();
   /**x,y,z,length are all set to 0.**/
   void clear();
   /**x,y,z are all multiplied by p. The length is then calculated by calling findLength(). This function returns *this.**/
   vector3& scale(const double& p); //multiplies vector by p
   /**x,y,z are all divided by p. The length is then calculated by calling findLength(). No checking is done for when p == 0; x,y,z and length will all be assigned as #INF if that is the case.**/
   vector3& divide(const double& p); //divides by p, unless it is zero, in which case ignore.
+
+  bool isValid();
 
 	/**x,y,z are returned as a coord3.**/
   coord3 printvector(); //prints coords
@@ -77,5 +80,5 @@ public:
   /** difference of two vectors, implemented using -= **/
   vector3 operator-(const vector3 &right) const;
   vector3 operator*(const double &right) const;
-  vector3 operator/=(const double& right) const;
+  vector3 operator/(const double& right) const;
 };

@@ -114,7 +114,7 @@ void heightmap::multiply(const double &p)
 
 double& heightmap::at(const int &x, const int& y)
   {
-  return infomap.at(y * h + x);
+  return infomap.at(y * w + x);
   }
 
 double* heightmap::at(const int &x, const int& y, bool distinguisher)

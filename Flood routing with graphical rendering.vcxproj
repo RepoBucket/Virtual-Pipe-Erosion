@@ -86,8 +86,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:/allegro/lib;C:/libnoise/bin;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libnoise.lib;allegro-5.0.7-monolith-md-debug.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:/allegro/lib;C:/libnoise/bin;C:/boost/boost_1_51/lib;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libboost_thread-vc100-mt-gd-1_51.lib;libnoise.lib;allegro-5.0.7-monolith-md-debug.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -154,15 +154,19 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="vector3.cpp" />
     <ClCompile Include="region.cpp" />
+    <ClCompile Include="virtualPipes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AllegroEngine.h" />
+    <ClInclude Include="colors.h" />
     <ClInclude Include="Engine.h" />
+    <ClInclude Include="enums.h" />
     <ClInclude Include="heightmap.h" />
     <ClInclude Include="layereddata.h" />
     <ClInclude Include="vector3.h" />
     <ClInclude Include="region.h" />
     <ClInclude Include="togglelatch.h" />
+    <ClInclude Include="virtualPipes.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -15,6 +15,7 @@ class region
     void generateTopography();
     ALLEGRO_BITMAP *landmap;
     void tempRender(); //roughly convert a heightmap to RGB and draw it on the bitmap.
+    
     int w;
     int h;
   protected:

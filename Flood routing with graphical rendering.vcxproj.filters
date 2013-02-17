@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\Unused">
+      <UniqueIdentifier>{1e98a2cd-3855-4188-82a4-8d81d0423533}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Unused">
+      <UniqueIdentifier>{e787c10d-796f-47d4-9fc6-bdd62a10fca0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="allegro-5.0.7-monolith-md-debug.dll" />
@@ -32,17 +38,20 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="region.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="heightmap.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="layereddata.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="vector3.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="virtualPipes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="region.cpp">
+      <Filter>Source Files\Unused</Filter>
+    </ClCompile>
+    <ClCompile Include="layereddata.cpp">
+      <Filter>Source Files\Unused</Filter>
+    </ClCompile>
+    <ClCompile Include="heightmap.cpp">
+      <Filter>Source Files\Unused</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -52,19 +61,28 @@
     <ClInclude Include="Engine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="region.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="heightmap.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="layereddata.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="togglelatch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="vector3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="virtualPipes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="enums.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="heightmap.h">
+      <Filter>Header Files\Unused</Filter>
+    </ClInclude>
+    <ClInclude Include="region.h">
+      <Filter>Header Files\Unused</Filter>
+    </ClInclude>
+    <ClInclude Include="layereddata.h">
+      <Filter>Header Files\Unused</Filter>
+    </ClInclude>
+    <ClInclude Include="colors.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

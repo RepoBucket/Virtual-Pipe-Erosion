@@ -6,8 +6,9 @@
 #include <string>
 #include <map>
 #include "allegro5\allegro5.h"
+#include "enums.h"
 
-enum materialID {NOTHING = 0, SOFTMAT, MEDIUMMAT, HARDMAT};
+
 
 struct material
   {
@@ -55,8 +56,8 @@ struct cell
 struct nullCell: public cell
   {
   nullCell() {height = 10000;}
-  double getHeight() {return height;}
-  double getTotalHeight() {return height;}
+  double getHeight() const  {return height;};
+  double getTotalHeight() const {return height;};
   };
 
 struct materialDictionary
@@ -122,7 +123,9 @@ class ErosionHeightmap
     void distributeByGradient(cell & input, const int& x, const int& y);
     vector3 normal(cell& thisCell, const int& x, const int& y);
     vector3 normal(const vector3& gradient);
+    vector3 normal(const double& x, const double& y);
     vector3 equation16 (vector3 input);
+    vector3 equation16_positive (vector3 input);
     void distribute(cell& thisCell, const pair<double, double>& coords);
     void distribute(cell &thisCell, const vector3& originalVector, const pair<double,double>& originalCoords, const pair<double,double>& targetCoords); //Newer version of distribution.
     void dampVelocity();
