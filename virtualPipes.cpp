@@ -3,7 +3,9 @@
 #include "noise.h"
 #include <ctime>
 #include "colors.h"
-
+#include <boost/thread.hpp>
+#include <boost/random/uniform_real_distribution.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
 
 using namespace ColorMath;
 
@@ -15,7 +17,7 @@ pipeCell::pipeCell()
 pipeCell::pipeCell(const int& newx, const int& newy, const double& cellSize) 
   : x(newx), y(newy), fluxLeft(0), fluxRight(0), fluxTop(0), fluxBottom(0),
   suspendedSediment(0), terrainHeight(0), waterHeight(0), lengthX(cellSize), lengthY(cellSize)
-  , tempKc(0.3), dissolvingConstant(0.3), depositingConstant(0.3), sedimentCapacity(0),
+  , tempKc(1), dissolvingConstant(0.1), depositingConstant(0.2), sedimentCapacity(0),
   hasBeenEroded(false)
   {
 
@@ -115,6 +117,7 @@ VirtualPipeErosion::VirtualPipeErosion(const int& width, const int& height, cons
   readList = &list1;
   writeList = &list2;
   terrain = al_create_bitmap(w, h);
+  sedimentList.insert(sedimentList.begin(), w*h, 0);
  /* readQueue = &queue1;
   writeQueue = &queue2;*/
   }
@@ -122,10 +125,62 @@ VirtualPipeErosion::VirtualPipeErosion(const int& width, const int& height, cons
 void VirtualPipeErosion::step(const double& time)
   {
   currentTimeStep = time;
-  maxErodeTimer = 1;// / time;
+
+  boost::thread flux1(&VirtualPipeErosion::operator(), boost::ref(this), 0, h/4, 0);
+  boost::thread flux2(&VirtualPipeErosion::operator(), boost::ref(this), h/4, 2*h/4, 0);
+  boost::thread flux3(&VirtualPipeErosion::operator(), boost::ref(this), 2*h/4, 3*h/4, 0);
+  boost::thread flux4(&VirtualPipeErosion::operator(), boost::ref(this), 3*h/4, h, 0);
+
+  flux1.join();
+  flux2.join();
+  flux3.join();
+  flux4.join();
+
+  boost::thread vector1(&VirtualPipeErosion::operator(), boost::ref(this), 0, h/4, 1);
+  boost::thread vector2(&VirtualPipeErosion::operator(), boost::ref(this), h/4, 2*h/4, 1);
+  boost::thread vector3(&VirtualPipeErosion::operator(), boost::ref(this), 2*h/4, 3*h/4, 1);
+  boost::thread vector4(&VirtualPipeErosion::operator(), boost::ref(this), 3*h/4, h, 1);
+
+  vector1.join();
+  vector2.join();
+  vector3.join();
+  vector4.join();
+
+  operator()(0, h, 3);
+
+  boost::thread erosion1(&VirtualPipeErosion::operator(), boost::ref(this), 0, h/4, 4);
+  boost::thread erosion2(&VirtualPipeErosion::operator(), boost::ref(this), h/4, 2*h/4, 4);
+  boost::thread erosion3(&VirtualPipeErosion::operator(), boost::ref(this), 2*h/4, 3*h/4, 4);
+  boost::thread erosion4(&VirtualPipeErosion::operator(), boost::ref(this), 3*h/4, h, 4);
+
+  erosion1.join();
+  erosion2.join();
+  erosion3.join();
+  erosion4.join();
+
+  updateSedimentMap(0, h);
+
+  boost::thread transport1(&VirtualPipeErosion::operator(), boost::ref(this), 0, h/4, 5);
+  boost::thread transport2(&VirtualPipeErosion::operator(), boost::ref(this), h/4, 2*h/4, 5);
+  boost::thread transport3(&VirtualPipeErosion::operator(), boost::ref(this), 2*h/4, 3*h/4, 5);
+  boost::thread transport4(&VirtualPipeErosion::operator(), boost::ref(this), 3*h/4, h, 5);
+
+  transport1.join();
+  transport2.join();
+  transport3.join();
+  transport4.join();
+
+  swapMaps();
+  }
+
+void VirtualPipeErosion::singlethreaded_step(const double& time)
+  {
+  currentTimeStep = time;
+  //maxErodeTimer = 1;// / time;
   stepThroughFlux(0, h);
   stepThroughVector(0, h);
-  swapMaps();
+  stepThroughErosion(0, h);
+  updateSedimentMap(0, h);
   stepThroughTransport(0, h);
   cleanUp(0, h);
   swapMaps();
@@ -175,7 +230,6 @@ void VirtualPipeErosion::stepThroughErosion(const int& startRow, const int& endR
 
 void VirtualPipeErosion::stepThroughTransport(const int& startRow, const int& endRow)
   {
-  // Have to swap read/write first.
   for (int ycounter = startRow; ycounter < endRow; ycounter++)
     {
     for (int xcounter = 0; xcounter < w; xcounter++)
@@ -185,23 +239,36 @@ void VirtualPipeErosion::stepThroughTransport(const int& startRow, const int& en
     }
   }
 
+void VirtualPipeErosion::updateSedimentMap(const int& startRow, const int& endRow)
+  {
+  for (int ycounter = startRow; ycounter < endRow; ycounter++)
+    {
+    for (int xcounter = 0; xcounter < w; xcounter++)
+      {
+      sedimentAt(xcounter, ycounter) = write(xcounter, ycounter).suspendedSediment;
+      }
+    }
+  }
+
 double VirtualPipeErosion::findNewSediment(const pipeCell& thisCell)
   {
-  vector3 flowvector (thisCell.flow);
-  flowvector.normalize();
-  return bilinearSediment(thisCell.x - flowvector.x, thisCell.y - flowvector.y);
+  //vector3 flowvector (thisCell.flow);
+  //flowvector.normalize();
+  return bilinearSediment(thisCell.x - thisCell.flow.x * currentTimeStep, thisCell.flow.y - thisCell.y * currentTimeStep);
   }
 
 double VirtualPipeErosion::bilinearSediment(const double& x, const double& y)
   {
   int basex = floor(x);
   int basey = floor(y);
-  int int1,int2;
+  double int1,int2;
   int1 = 1 - (x - basex);
   int2 = 1 - (y - basey);
-  double lerp1 = read(basex, basey).suspendedSediment * (int1) + read(basex+1, basey).suspendedSediment * (1 - int1);
-  double lerp2 = read(basex, basey+1).suspendedSediment * (int1) + read(basex+1, basey+1).suspendedSediment * (1 - int1);
+  double lerp1 = sedimentAt(basex, basey) * (int1) + sedimentAt(basex+1, basey) * (1 - int1);
+  double lerp2 = sedimentAt(basex, basey+1) * (int1) + sedimentAt(basex+1, basey+1) * (1 - int1);
   return lerp1 * (int2) + lerp2 * (1 - int2);
+  //Temp test code by just clamping the sediment.
+  //return sedimentAt(basex, basey);
   }
 
 void VirtualPipeErosion::calculateFlux(pipeCell& thisCell)
@@ -226,7 +293,7 @@ void VirtualPipeErosion::cleanUp(const int& startRow, const int& endRow)
 
 double VirtualPipeErosion::findSedimentCapacity(const pipeCell& thisCell)
   {
-  return currentTimeStep * thisCell.getSedimentCapacityConstant() * max(0.01, getSine(thisCell)) * thisCell.flow.length * thisCell.getWaterHeight();
+  return currentTimeStep * thisCell.getSedimentCapacityConstant() * max(0.001, getSine(thisCell)) * thisCell.flow.length * thisCell.getWaterHeight();
   }
 
 double VirtualPipeErosion::getSine(const pipeCell& thisCell)
@@ -356,7 +423,7 @@ void VirtualPipeErosion::generate()
   for (int ycounter = 0; ycounter < h; ycounter++)
     for (int xcounter = 0; xcounter < w; xcounter++)
       {
-      temporaryMap->at(xcounter, ycounter) = Perlingen.GetValue((double)xcounter / 93.1f, (double)ycounter / 93.0f, 0.1f);
+      temporaryMap->at(xcounter, ycounter) = Perlingen.GetValue((double)xcounter / 183.1f, (double)ycounter / 180.0f, 0.1f);
       }
 
     temporaryMap->scale(1, 50);
@@ -397,7 +464,8 @@ void VirtualPipeErosion::render()
         {
         if (read(xcounter, ycounter).getWaterHeight() > 0)
           {
-          if (read(xcounter, ycounter).suspendedSediment > 0.01)
+          if (read(xcounter, ycounter).suspendedSediment > 0)
+            
             al_put_pixel(xcounter, ycounter, green);
           else
             al_put_pixel(xcounter, ycounter, blue);
@@ -413,10 +481,11 @@ void VirtualPipeErosion::render()
 
   }
 
+/*
 void VirtualPipeErosion::prepErosion(const double& time)
   {
   currentTimeStep = time;
-  }
+  }*/
 
 void VirtualPipeErosion::operator()(const int& startRow, const int& endRow, const int& mode)
   {
@@ -434,11 +503,6 @@ void VirtualPipeErosion::operator()(const int& startRow, const int& endRow, cons
     return;
   }
 
-double VirtualPipeErosion::geth()
-  {
-  return h;
-  }
-
 void VirtualPipeErosion::evaporate(const double& amount)
   {
   if (amount > 1 || amount < 0)
@@ -451,4 +515,42 @@ void VirtualPipeErosion::evaporate(const double& amount)
         if (read(xcounter, ycounter).getWaterHeight() < 0.001)
           read(xcounter, ycounter).setWaterHeight(0);
         }
+  }
+
+double& VirtualPipeErosion::sedimentAt(const int& x, const int& y)
+  {
+  if (x < w && y < h && x >= 0 && y >= 0)
+    return sedimentList.at(x + y * w);
+  else
+    return nullcell.suspendedSediment;
+  }
+
+////////////////
+//
+//
+//
+//
+////////////////
+
+void VirtualPipeErosionTools::randomRain(VirtualPipeErosion& thisErosion, const int& howMany, const double& howMuchRain)
+  {
+  int width = thisErosion.w;
+  int height = thisErosion.h;
+
+  for (int counter = 0; counter < howMany; counter++)
+    {
+    thisErosion.addWater(random(0, width), random(0, height), random(howMuchRain * 0.9, howMuchRain * 1.1)); 
+    }
+  };
+
+int VirtualPipeErosionTools::random(const int& min, const int& max)
+  {
+  boost::random::uniform_int_distribution<> dist(min, max);
+  return dist(rng);
+  }
+
+double VirtualPipeErosionTools::random(const double& min, const double& max)
+  {
+  boost::random::uniform_real_distribution<> dist(min, max);
+  return dist(rng);
   }

@@ -10,6 +10,8 @@ using namespace std;
 #include "heightmap.h"
 #include <limits>
 
+#include <boost/random/mersenne_twister.hpp>
+
 #undef max
 #undef min
 
@@ -94,13 +96,15 @@ class VirtualPipeErosion
     void addWater(const int& x, const int& y, const double& amount);
     pipeCell& read(const int& x, const int& y);
     pipeCell& write(const int& x, const int& y);
+    double& sedimentAt(const int& x, const int& y);
     void step(const double& time);
+    void singlethreaded_step(const double& time);
     void evaporate(const double& amount);
     
     void render();
 
     //For threadedness
-    void prepErosion(const double& time); // Sets time.
+   // void prepErosion(const double& time); // Sets time.
     void operator()(const int& startRow, const int& endRow, const int& mode);
     void finishErosion(); //Swaps maps.
     //
@@ -109,18 +113,21 @@ class VirtualPipeErosion
     void generateV();
     ALLEGRO_BITMAP* terrain;
 
-    double geth();
+   // double geth();
 
     double erodeTimer;
     double maxErodeTimer;
-
+    void updateSedimentMap(const int& startRow, const int& endRow);
     void swapMaps();
+    const int w, h;
 
   private:
     void stepThroughErosion(const int& startRow, const int& endRow);
     void stepThroughFlux(const int& startRow, const int& endRow); // For multithreading.
     void stepThroughVector(const int& startRow, const int& endRow);
     void stepThroughTransport(const int& startRow, const int& endRow);
+
+    
     void calculateFlux(pipeCell& thisCell); //Equation 2, for all the fluxes.
     void cleanUp(const int& startRow, const int& endRow);
     double heightDifference(const int& x1, const int& y1, const int& x2, const int& y2);
@@ -134,7 +141,6 @@ class VirtualPipeErosion
     double findSedimentCapacity(const pipeCell& thisCell);
 
     noise::module::Perlin Perlingen;
-    int w, h;
     double currentTimeStep;
     double max(const double& left, const double& right);
     double min(const double& left, const double& right);
@@ -150,6 +156,7 @@ class VirtualPipeErosion
     vector<pipeCell> list2;
     vector<pipeCell>* readList;
     vector<pipeCell>* writeList;
+    vector<double> sedimentList;
 
     heightmap renderMap;
     WallCell nullcell;
@@ -159,4 +166,14 @@ class VirtualPipeErosion
     queue<pair<int,int>>* readQueue;
     queue<pair<int,int>>* writeQueue;*/
             
+  };
+
+class VirtualPipeErosionTools
+  {
+  public:
+    void randomRain(VirtualPipeErosion& thisErosion, const int& howMany, const double& howMuchRain);
+  private:
+    boost::random::mt19937 rng;
+    int random(const int& min, const int& max);
+    double random(const double& min, const double& max);
   };
