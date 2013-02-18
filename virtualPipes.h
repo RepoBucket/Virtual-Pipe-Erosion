@@ -67,6 +67,8 @@ struct pipeCell
 
   void addToWaterHeight(const double& moreWater);
   void addToTerrainHeight(const double& moreHeight);
+
+  bool hasBeenEroded;
   
   protected:
     double terrainHeight;
@@ -112,10 +114,13 @@ class VirtualPipeErosion
     double erodeTimer;
     double maxErodeTimer;
 
+    void swapMaps();
+
   private:
     void stepThroughErosion(const int& startRow, const int& endRow);
     void stepThroughFlux(const int& startRow, const int& endRow); // For multithreading.
     void stepThroughVector(const int& startRow, const int& endRow);
+    void stepThroughTransport(const int& startRow, const int& endRow);
     void calculateFlux(pipeCell& thisCell); //Equation 2, for all the fluxes.
     void cleanUp(const int& startRow, const int& endRow);
     double heightDifference(const int& x1, const int& y1, const int& x2, const int& y2);
@@ -133,7 +138,7 @@ class VirtualPipeErosion
     double currentTimeStep;
     double max(const double& left, const double& right);
     double min(const double& left, const double& right);
-    void swapMaps();
+    
    // void swapQueues();
     double netVolumeChange(const pipeCell& thisCell);
     double updateWaterHeight(const pipeCell& inputCell);
