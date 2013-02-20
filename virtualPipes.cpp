@@ -9,6 +9,24 @@
 
 using namespace ColorMath;
 
+
+/*
+material& materialDict::lookup(const unsigned int& key)
+  {
+  if (key < tableSize && key >= 0)
+    return table[key];
+  else
+    return table[0];
+  }
+  */
+
+/////////////
+//
+//
+//
+//
+/////////////
+
 pipeCell::pipeCell()
   {
 
@@ -17,7 +35,7 @@ pipeCell::pipeCell()
 pipeCell::pipeCell(const int& newx, const int& newy, const double& cellSize) 
   : x(newx), y(newy), fluxLeft(0), fluxRight(0), fluxTop(0), fluxBottom(0),
   suspendedSediment(0), terrainHeight(0), waterHeight(0), lengthX(cellSize), lengthY(cellSize)
-  , tempKc(1), dissolvingConstant(0.1), depositingConstant(0.2), sedimentCapacity(0),
+  , tempKc(1.5), dissolvingConstant(0.3), depositingConstant(0.3), sedimentCapacity(0),
   hasBeenEroded(false)
   {
 
@@ -117,7 +135,15 @@ VirtualPipeErosion::VirtualPipeErosion(const int& width, const int& height, cons
   readList = &list1;
   writeList = &list2;
   terrain = al_create_bitmap(w, h);
+  sedimentCapacityRender = al_create_bitmap(w , h);
+  sedimentRender = al_create_bitmap(w, h);
+
   sedimentList.insert(sedimentList.begin(), w*h, 0);
+
+  renderMap.initMap(w,h);
+  for (int ycounter = 0; ycounter < h; ycounter++)
+    for (int xcounter = 0; xcounter < w; xcounter++)
+      renderMap.infomap.push_back(0);
  /* readQueue = &queue1;
   writeQueue = &queue2;*/
   }
@@ -230,22 +256,13 @@ void VirtualPipeErosion::stepThroughErosion(const int& startRow, const int& endR
 
 void VirtualPipeErosion::stepThroughTransport(const int& startRow, const int& endRow)
   {
+  pipeCell* thisCell;
   for (int ycounter = startRow; ycounter < endRow; ycounter++)
     {
     for (int xcounter = 0; xcounter < w; xcounter++)
       {
-      write(xcounter, ycounter).suspendedSediment = findNewSediment(write(xcounter, ycounter));
-      }
-    }
-  }
-
-void VirtualPipeErosion::updateSedimentMap(const int& startRow, const int& endRow)
-  {
-  for (int ycounter = startRow; ycounter < endRow; ycounter++)
-    {
-    for (int xcounter = 0; xcounter < w; xcounter++)
-      {
-      sedimentAt(xcounter, ycounter) = write(xcounter, ycounter).suspendedSediment;
+      thisCell = &write(xcounter, ycounter);
+      thisCell->suspendedSediment = findNewSediment(*thisCell);
       }
     }
   }
@@ -254,7 +271,18 @@ double VirtualPipeErosion::findNewSediment(const pipeCell& thisCell)
   {
   //vector3 flowvector (thisCell.flow);
   //flowvector.normalize();
-  return bilinearSediment(thisCell.x - thisCell.flow.x * currentTimeStep, thisCell.flow.y - thisCell.y * currentTimeStep);
+  return bilinearSediment(thisCell.x - thisCell.flow.x * currentTimeStep, thisCell.y - thisCell.flow.y * currentTimeStep);
+  }
+
+void VirtualPipeErosion::updateSedimentMap(const int& startRow, const int& endRow)
+ {
+  for (int ycounter = startRow; ycounter < endRow; ycounter++)
+    {
+    for (int xcounter = 0; xcounter < w; xcounter++)
+      {
+      sedimentAt(xcounter, ycounter) = write(xcounter, ycounter).suspendedSediment;
+      }
+    }
   }
 
 double VirtualPipeErosion::bilinearSediment(const double& x, const double& y)
@@ -274,26 +302,29 @@ double VirtualPipeErosion::bilinearSediment(const double& x, const double& y)
 void VirtualPipeErosion::calculateFlux(pipeCell& thisCell)
   {
   // Do all four.
-  thisCell.fluxTop = max(0, currentTimeStep * pipeCrossSectionalArea * 9.8 * heightDifference(thisCell.x, thisCell.y, thisCell.x, thisCell.y-1));
-  thisCell.fluxLeft = max(0, currentTimeStep * pipeCrossSectionalArea * 9.8 * heightDifference(thisCell.x, thisCell.y, thisCell.x-1, thisCell.y));
-  thisCell.fluxRight = max(0, currentTimeStep * pipeCrossSectionalArea * 9.8 * heightDifference(thisCell.x, thisCell.y, thisCell.x+1, thisCell.y));
-  thisCell.fluxBottom = max(0, currentTimeStep * pipeCrossSectionalArea * 9.8 * heightDifference(thisCell.x, thisCell.y, thisCell.x, thisCell.y+1));
+  thisCell.fluxTop = max(0, currentTimeStep * pipeCrossSectionalArea * 9.8 * heightDifference(thisCell, thisCell.x, thisCell.y-1));
+  thisCell.fluxLeft = max(0, currentTimeStep * pipeCrossSectionalArea * 9.8 * heightDifference(thisCell, thisCell.x-1, thisCell.y));
+  thisCell.fluxRight = max(0, currentTimeStep * pipeCrossSectionalArea * 9.8 * heightDifference(thisCell, thisCell.x+1, thisCell.y));
+  thisCell.fluxBottom = max(0, currentTimeStep * pipeCrossSectionalArea * 9.8 * heightDifference(thisCell, thisCell.x, thisCell.y+1));
   }
 
 void VirtualPipeErosion::cleanUp(const int& startRow, const int& endRow)
   {
+  double buffer;
   for (int ycounter = startRow; ycounter <= endRow; ycounter++)
     {
     for (int xcounter = 0; xcounter < w; xcounter++)
       {
-      write(xcounter, ycounter).setWaterHeight(write(xcounter, ycounter).getWaterHeight() > 0.00001 ? write(xcounter, ycounter).getWaterHeight() : 0);
+      pipeCell* currentCell = &write(xcounter, ycounter);
+      buffer = currentCell->getWaterHeight();
+      currentCell->setWaterHeight(buffer > 0.00001 ? buffer : 0);
       }
     }
   }
 
 double VirtualPipeErosion::findSedimentCapacity(const pipeCell& thisCell)
   {
-  return currentTimeStep * thisCell.getSedimentCapacityConstant() * max(0.001, getSine(thisCell)) * thisCell.flow.length * thisCell.getWaterHeight();
+  return currentTimeStep * thisCell.getSedimentCapacityConstant() * max(0.001, abs(getSine(thisCell))) * thisCell.flow.length ;//* thisCell.getWaterHeight();
   }
 
 double VirtualPipeErosion::getSine(const pipeCell& thisCell)
@@ -302,7 +333,7 @@ double VirtualPipeErosion::getSine(const pipeCell& thisCell)
   double angle2 = (write(thisCell.x, thisCell.y - 1).getAngleHeight(thisCell) - write(thisCell.x, thisCell.y+1).getAngleHeight(thisCell))/2;
   angle1 = atan(angle1);
   angle2 = atan(angle2);
-  return sin((angle1 + angle2)/2);
+  return sin((abs(angle1) + abs(angle2))/2);
   }
 
 void VirtualPipeErosion::erosionDeposition(pipeCell& thisCell)
@@ -335,9 +366,9 @@ double VirtualPipeErosion::min(const double& left, const double& right)
   return left > right ? right : left;
   }
 
-double VirtualPipeErosion::heightDifference(const int& x1, const int& y1, const int& x2, const int& y2)
+double VirtualPipeErosion::heightDifference(const pipeCell& currentCell, const int& x2, const int& y2)
   {
-  return read(x1, y1).getTotalHeight() - read(x2, y2).getTotalHeight();
+  return currentCell.getTotalHeight() - read(x2, y2).getTotalHeight();
   }
 
 double VirtualPipeErosion::scalingK(const pipeCell& thisCell)
@@ -367,7 +398,7 @@ void VirtualPipeErosion::addWater(const int& x, const int& y, const double& amou
 pipeCell& VirtualPipeErosion::read(const int& x, const int& y)
   {
   if (x < w && y < h && x >= 0 && y >= 0)
-    return readList->at(x + y * w);
+    return (*readList)[x + y * w];//readList->at(x + y * w);
   else
     return nullcell;
   }
@@ -375,7 +406,7 @@ pipeCell& VirtualPipeErosion::read(const int& x, const int& y)
 pipeCell& VirtualPipeErosion::write(const int& x, const int& y)
   {
   if (x < w && y < h && x >= 0 && y >= 0)
-    return writeList->at(x + y * w);
+    return (*writeList)[x + y * w];
   else
     return nullcell;
   }
@@ -423,7 +454,7 @@ void VirtualPipeErosion::generate()
   for (int ycounter = 0; ycounter < h; ycounter++)
     for (int xcounter = 0; xcounter < w; xcounter++)
       {
-      temporaryMap->at(xcounter, ycounter) = Perlingen.GetValue((double)xcounter / 183.1f, (double)ycounter / 180.0f, 0.1f);
+      temporaryMap->infomap.push_back((Perlingen.GetValue((double)xcounter / 183.1f, (double)ycounter / 180.0f, 0.1f)));
       }
 
     temporaryMap->scale(1, 50);
@@ -438,9 +469,39 @@ void VirtualPipeErosion::generate()
     *writeList = *readList;
   }
 
+void VirtualPipeErosion::renderSedimentCapacity()
+  {
+  ALLEGRO_COLOR brown = al_map_rgb(200,150,100);
+  ALLEGRO_COLOR black = al_map_rgb(0,0,0);
+  ALLEGRO_COLOR orange = al_map_rgb(255,185,0);
+
+  for (int ycounter = 0; ycounter < h; ycounter++)
+    for (int xcounter = 0; xcounter < w; xcounter++)
+      {
+      renderMap.at(xcounter, ycounter) = read(xcounter, ycounter).sedimentCapacity;
+      }
+   // renderMap.scale(0,1);
+
+    
+    double value;
+
+    al_set_target_bitmap(sedimentCapacityRender);
+    al_lock_bitmap(al_get_target_bitmap(), al_get_bitmap_format(sedimentCapacityRender), ALLEGRO_LOCK_READWRITE);
+    for (int ycounter = 0; ycounter < h; ycounter++)
+      for (int xcounter = 0; xcounter < w; xcounter++)
+        {
+        value = renderMap.at(xcounter, ycounter);
+        if (value >= 0)
+          al_put_pixel(xcounter, ycounter, ColorMath::lerp(black, brown, min(1, value * 100.0f)));
+        else
+          al_put_pixel(xcounter, ycounter, ColorMath::lerp(black, orange, min(1, value * 100.0f)));
+        }
+      al_unlock_bitmap(al_get_target_bitmap());
+  }
+
 void VirtualPipeErosion::render()
   {
-  renderMap.initMap(w,h);
+ // renderMap.initMap(w,h);
   for (int ycounter = 0; ycounter < h; ycounter++)
     for (int xcounter = 0; xcounter < w; xcounter++)
       {
@@ -456,7 +517,6 @@ void VirtualPipeErosion::render()
     ALLEGRO_COLOR black = al_map_rgb(0,0,0);
     ALLEGRO_COLOR orange = al_map_rgb(255,102,0);
 
-
     al_set_target_bitmap(terrain);
     al_lock_bitmap(al_get_target_bitmap(), al_get_bitmap_format(terrain), ALLEGRO_LOCK_READWRITE);
     for (int ycounter = 0; ycounter < h; ycounter++)
@@ -465,20 +525,49 @@ void VirtualPipeErosion::render()
         if (read(xcounter, ycounter).getWaterHeight() > 0)
           {
           if (read(xcounter, ycounter).suspendedSediment > 0)
-            
             al_put_pixel(xcounter, ycounter, green);
           else
             al_put_pixel(xcounter, ycounter, blue);
           }
-        else if (/*read(xcounter, ycounter).hasBeenEroded*/ false)
+        /*else if (/*read(xcounter, ycounter).hasBeenEroded false)
           {
           al_put_pixel(xcounter, ycounter, orange);
-          }
+          }*/
         else
-          al_put_pixel(xcounter, ycounter, heightmap::lerp(black, red, renderMap.at(xcounter,ycounter)/(double)64));
+          al_put_pixel(xcounter, ycounter, lerp(black, red, renderMap.at(xcounter,ycounter)/(double)64));
         }
       al_unlock_bitmap(al_get_target_bitmap());
+  }
 
+void VirtualPipeErosion::renderSediment()
+  {
+  ALLEGRO_COLOR white = al_map_rgb(255,255,255);
+  ALLEGRO_COLOR black = al_map_rgb(0,0,0);
+  ALLEGRO_COLOR orange = al_map_rgb(255,185,0);
+
+  for (int ycounter = 0; ycounter < h; ycounter++)
+    for (int xcounter = 0; xcounter < w; xcounter++)
+      {
+      renderMap.at(xcounter, ycounter) = read(xcounter, ycounter).suspendedSediment;
+      }
+   // renderMap.scale(0,1);
+
+    
+    double value;
+
+    al_set_target_bitmap(sedimentRender);
+    al_clear_to_color(al_map_rgb(0,0,0));
+    al_lock_bitmap(al_get_target_bitmap(), al_get_bitmap_format(sedimentRender), ALLEGRO_LOCK_READWRITE);
+    for (int ycounter = 0; ycounter < h; ycounter++)
+      for (int xcounter = 0; xcounter < w; xcounter++)
+        {
+        value = renderMap.at(xcounter, ycounter);
+        if (value >= 0)
+          al_put_pixel(xcounter, ycounter, ColorMath::lerp(black, white, min(1, value * 100.0f)));
+        else
+          al_put_pixel(xcounter, ycounter, ColorMath::lerp(black, orange, min(1, value * 100.0f)));
+        }
+      al_unlock_bitmap(al_get_target_bitmap());
   }
 
 /*
@@ -520,7 +609,7 @@ void VirtualPipeErosion::evaporate(const double& amount)
 double& VirtualPipeErosion::sedimentAt(const int& x, const int& y)
   {
   if (x < w && y < h && x >= 0 && y >= 0)
-    return sedimentList.at(x + y * w);
+    return sedimentList[x + y * w];
   else
     return nullcell.suspendedSediment;
   }

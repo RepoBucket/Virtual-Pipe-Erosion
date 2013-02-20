@@ -53,6 +53,9 @@
     <ClCompile Include="heightmap.cpp">
       <Filter>Source Files\Unused</Filter>
     </ClCompile>
+    <ClCompile Include="color.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AllegroEngine.h">

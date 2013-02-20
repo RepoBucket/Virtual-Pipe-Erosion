@@ -11,16 +11,21 @@ Engine DisplayEngine;
 VirtualPipeErosion *Erosion;
 VirtualPipeErosionTools toolbox;
 int counter;
+int rendercounter;
 bool render;
 
 bool Engine::EngineInit(map<int,bool> errormap)
   {
   al_init_primitives_addon();
-  
-  Erosion = new VirtualPipeErosion(256,256,1);
+  Erosion = new VirtualPipeErosion(256, 256, 1);
+ /* if (POD.inputBitmap)
+    Erosion->readFromBitmap(POD.inputBitmap, POD.scaleConstant);
+  else
+    Erosion->generateV();*/
+
   counter = 0;
   //thisErosion->generateTest();
-  Erosion->generate();
+ Erosion->generate();
  // Erosion->addWater(0, 0, 100);
   Erosion->render();
 
@@ -102,24 +107,40 @@ void Engine::Update()
     stepCounter = 0;
     }*/
   //else stepCounter++;
-  if (counter < 200)
+  if (counter < 3000)
     {
-    toolbox.randomRain(*Erosion, 10, 1.0f);
+    toolbox.randomRain(*Erosion, 10, 0.5f);
+    for (int othercounter = 32; othercounter != 38; othercounter++)
+      Erosion->addWater(othercounter, 1 ,0.5f);
     counter++;
     }
   else
-    Erosion->evaporate(0.99);
+    Erosion->evaporate(0.95);
 
   Erosion->step(0.05);
+  // Erosion->singlethreaded_step(0.05);
 
-  if (render)
+  if (rendercounter > 10)
+    {
+      Erosion->render();
+      Erosion->renderSediment();
+      Erosion->renderSedimentCapacity();
+      rendercounter = 0;
+    }
+  else
+    rendercounter++;
+
+ /* if (render)
     Erosion->render();
-  render = !render;
+  render = !render;*/
   }
 
 void Engine::Render(ALLEGRO_DISPLAY *root)
   {
-  al_draw_bitmap(Erosion->terrain, 10, 10, 0);
+  al_clear_to_color(al_map_rgb(255,255,255));
+  al_draw_bitmap(Erosion->terrain, 0, 0, 0);
+  al_draw_bitmap(Erosion->sedimentCapacityRender, Erosion->h, 0, 0);
+  al_draw_bitmap(Erosion->sedimentRender, 0, Erosion->h, 0);
   //al_draw_bitmap(thisRegion->landmap, 0, 0, 0);
   }
 

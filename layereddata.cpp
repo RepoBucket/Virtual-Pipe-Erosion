@@ -2,6 +2,7 @@
 //#include "heightmap.h"
 //#include "region.h" //For the color arithmetic.
 #include <cmath>
+#include "colors.h"
 #include <iostream>
 
 cell::cell()
@@ -815,11 +816,11 @@ void ErosionHeightmap::render()
         waterHeight = log10(waterHeight);
         waterHeight = waterHeight > 1 ? 1 : waterHeight;
         waterHeight = waterHeight < 0 ? 0 : waterHeight;
-        al_put_pixel(xcounter, ycounter, heightmap::lerp(blue, darkBlue, (int)waterHeight));
+        al_put_pixel(xcounter, ycounter, ColorMath::lerp(blue, darkBlue, (int)waterHeight));
 
         }
       else //renderMap.at(xcounter, ycounter)
-        al_put_pixel(xcounter, ycounter, heightmap::lerp(darkRed, red, renderMap.at(xcounter,ycounter)));
+        al_put_pixel(xcounter, ycounter, ColorMath::lerp(darkRed, red, renderMap.at(xcounter,ycounter)));
       }
 
   al_unlock_bitmap(al_get_target_bitmap());

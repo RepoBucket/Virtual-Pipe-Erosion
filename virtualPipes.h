@@ -9,6 +9,7 @@
 using namespace std;
 #include "heightmap.h"
 #include <limits>
+//#include <map>
 
 #include <boost/random/mersenne_twister.hpp>
 
@@ -16,7 +17,10 @@ using namespace std;
 #undef min
 
 // Implement advanced stuff later.
-/*struct material
+
+
+/*
+struct material
   {
   int ID;
   double sedimentCapacity;
@@ -25,18 +29,42 @@ using namespace std;
   string name;
   };
 
+struct materialDict
+  {
+  materialDict() { 
+    string str;
+    material buffer;
+
+    buffer.deposition = 0; buffer.dissolving = 0; buffer.ID = 0; buffer.name = str.assign("null"); buffer.sedimentCapacity = 0;
+    table.push_back(buffer);
+
+    buffer.deposition = 0.3; buffer.dissolving = 0.3; buffer.ID = 1; buffer.name = str.assign("Sand"); buffer.sedimentCapacity = 1.5;
+    table.push_back(buffer);
+
+    buffer.deposition = 0.3; buffer.dissolving = 0.4; buffer.ID = 1; buffer.name = str.assign("Silt"); buffer.sedimentCapacity = 3.0;
+    table.push_back(buffer);
+
+    tableSize = table.size();
+    }
+  enum materials{};
+  material& lookup(const unsigned int& key);
+  vector<material> table;
+  private:
+    unsigned int tableSize;
+  };
+
 struct layer
   {
-  map<int, material>::iterator mat; //Iterator to a lookup table.
+  vector<material> mat; //Iterator to a lookup table.
   double height;
   };
 
 struct transientLayer
   {
-  vector<map<int,material>::iterator> materials;
+  map<int, material> materials;
   map<int, double> heights;
   double getHeight() const;
-  };*/
+  }; */
 
 struct pipeCell
   {
@@ -102,6 +130,8 @@ class VirtualPipeErosion
     void evaporate(const double& amount);
     
     void render();
+    void renderSedimentCapacity();
+    void renderSediment();
 
     //For threadedness
    // void prepErosion(const double& time); // Sets time.
@@ -112,6 +142,8 @@ class VirtualPipeErosion
     void generate();
     void generateV();
     ALLEGRO_BITMAP* terrain;
+    ALLEGRO_BITMAP* sedimentCapacityRender;
+    ALLEGRO_BITMAP* sedimentRender;
 
    // double geth();
 
@@ -130,7 +162,7 @@ class VirtualPipeErosion
     
     void calculateFlux(pipeCell& thisCell); //Equation 2, for all the fluxes.
     void cleanUp(const int& startRow, const int& endRow);
-    double heightDifference(const int& x1, const int& y1, const int& x2, const int& y2);
+    double heightDifference(const pipeCell& currentCell, const int& x2, const int& y2);
     double scalingK(const pipeCell& thisCell);
     double getSine(const pipeCell& thisCell);
     double findNewSediment(const pipeCell& thisCell);
@@ -159,13 +191,7 @@ class VirtualPipeErosion
     vector<double> sedimentList;
 
     heightmap renderMap;
-    WallCell nullcell;
-
-    /*queue<pair<int,int>> queue1;
-    queue<pair<int,int>> queue2;
-    queue<pair<int,int>>* readQueue;
-    queue<pair<int,int>>* writeQueue;*/
-            
+    WallCell nullcell;            
   };
 
 class VirtualPipeErosionTools

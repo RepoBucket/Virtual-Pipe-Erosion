@@ -36,16 +36,6 @@ void heightmap::initMap(const double &width, const double& height)
   infomap.clear();
   w = width;
   h = height;
-
-  try {
-  for (int counter = 0; counter < w * h; counter++)
-    infomap.push_back(0);
-    }
-  catch (bad_alloc& ba)
-    {
-    cerr << "bad_alloc caught: " << ba.what() << endl;
-    }
-
   }
 
 void heightmap::setGenSeed()
@@ -114,7 +104,7 @@ void heightmap::multiply(const double &p)
 
 double& heightmap::at(const int &x, const int& y)
   {
-  return infomap.at(y * w + x);
+  return infomap[y * w + x];
   }
 
 double* heightmap::at(const int &x, const int& y, bool distinguisher)
@@ -192,17 +182,4 @@ void heightmap::setPerlinFrequency()
 void heightmap::setPerlinFrequency(const double& newFreq)
   {
   mapPerlin.SetFrequency(newFreq);
-  }
-
-ALLEGRO_COLOR heightmap::lerp(ALLEGRO_COLOR c1, const ALLEGRO_COLOR &c2, const double &interpolate)
-  {
-  c1.r *= 1 - interpolate;
-  c1.g *= 1 - interpolate;
-  c1.b *= 1 - interpolate;
-  c1.a *= 1 - interpolate;
-  c1.r += c2.r * interpolate;
-  c1.b += c2.b * interpolate;
-  c1.g += c2.g * interpolate;
-  c1.a += c2.a * interpolate;
-  return c1;
   }
