@@ -18,8 +18,8 @@ using namespace std;
 
 // Implement advanced stuff later.
 
-
 /*
+
 struct material
   {
   int ID;
@@ -55,7 +55,7 @@ struct materialDict
 
 struct layer
   {
-  vector<material> mat; //Iterator to a lookup table.
+  vector<material>::iterator mat; //Iterator to a lookup table.
   double height;
   };
 
@@ -77,6 +77,7 @@ struct pipeCell
   virtual double getTerrainHeight() const;
   virtual double getWaterHeight() const;
   virtual double getTotalHeight() const;
+  double getSoilSlippage() const; // This would be the threshold.
   double getSedimentCapacityConstant() const;
   double sedimentCapacity;
   double dissolvingConstant;
@@ -87,7 +88,8 @@ struct pipeCell
 
   void setWaterHeight(const double& newWaterHeight);
   void setTerrainHeight(const double& newTerrainHeight);
-  double netFlux() const;
+  void setSoilSlippage(const double& newSlippage);
+  virtual double netFlux() const;
   double fluxLeft, fluxRight, fluxTop, fluxBottom; // The outflow flux.
   double suspendedSediment; // Probably will be replaced later by a more advanced model.
   vector3 flow;
@@ -101,6 +103,9 @@ struct pipeCell
   bool hasBeenEroded;
   
   protected:
+/*    vector<layer> layers;
+    transientLayer transientlayer;*/
+    double soilSlippage;
     double terrainHeight;
     double waterHeight;
     double lengthX, lengthY; // Length of the sides.
@@ -117,11 +122,22 @@ class WallCell : public pipeCell //Acts as a wall.
     virtual double getAngleHeight(const pipeCell& thisCell) const;
   };
 
+class drainCell : public pipeCell //Throws away water.
+  {
+  public:
+    drainCell() : pipeCell(0,0,1){}
+    virtual double getTerrainHeight() const {return 0;}
+   // virtual double netFlux() const {return 0;}
+    void clear();
+  };
+
 class VirtualPipeErosion
   {
   public:
     VirtualPipeErosion(const int& width, const int& height, const double& cellSize, const bool& random = false);
+    VirtualPipeErosion(ALLEGRO_BITMAP* inputTerrain, ALLEGRO_BITMAP* inputWater, const double& minScale, const double& maxScale);
     void addWater(const int& x, const int& y, const double& amount);
+    void addWaterRect(const int& x, const int& y, const int& width, const int& height, const double& amount);
     pipeCell& read(const int& x, const int& y);
     pipeCell& write(const int& x, const int& y);
     double& sedimentAt(const int& x, const int& y);
@@ -132,6 +148,7 @@ class VirtualPipeErosion
     void render();
     void renderSedimentCapacity();
     void renderSediment();
+    void renderFraction();
 
     //For threadedness
    // void prepErosion(const double& time); // Sets time.
@@ -144,6 +161,7 @@ class VirtualPipeErosion
     ALLEGRO_BITMAP* terrain;
     ALLEGRO_BITMAP* sedimentCapacityRender;
     ALLEGRO_BITMAP* sedimentRender;
+    ALLEGRO_BITMAP* sedimentFraction;
 
    // double geth();
 
@@ -152,6 +170,11 @@ class VirtualPipeErosion
     void updateSedimentMap(const int& startRow, const int& endRow);
     void swapMaps();
     const int w, h;
+
+    //For use with DirectXWindow
+    void packageHeightmaps();
+    float* getHeightmap();
+    float* getRGBMap();
 
   private:
     void stepThroughErosion(const int& startRow, const int& endRow);
@@ -189,15 +212,23 @@ class VirtualPipeErosion
     vector<pipeCell>* readList;
     vector<pipeCell>* writeList;
     vector<double> sedimentList;
+    vector<float> initialTerrainHeight;
 
     heightmap renderMap;
-    WallCell nullcell;            
+    WallCell nullcell;
+    drainCell drain;
+
+    /////
+    vector<float> outputHeightmap;
+    vector<float> outputRGBMap;
   };
 
 class VirtualPipeErosionTools
   {
   public:
     void randomRain(VirtualPipeErosion& thisErosion, const int& howMany, const double& howMuchRain);
+    void randomRainInRegion(VirtualPipeErosion& thisErosion, const int& howMany, const double& howMuchRain, const int& x, const int& y, const int& w, const int& h);
+    void removeRainInRegion(VirtualPipeErosion& thisErosion, const int& x, const int& y, const int& width, const int& height);
   private:
     boost::random::mt19937 rng;
     int random(const int& min, const int& max);

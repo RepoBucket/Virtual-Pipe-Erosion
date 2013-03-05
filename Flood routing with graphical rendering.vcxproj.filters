@@ -27,6 +27,18 @@
     <None Include="tangerineslice.png">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="other_terrain.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="other_water.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="test_terrain.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="test_water.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AllegroEngine.cpp">
