@@ -26,7 +26,7 @@ struct Fragment
 
     Fragment VS( uint vertexId : SV_VertexID, uint tileNumber : SV_InstanceID) 
     { 
-		float textureSize = textureSizeData.x;
+		uint textureSize = textureSizeData.x;
         Fragment frag; 
 		uint2 xy;
 		

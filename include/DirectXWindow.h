@@ -13,6 +13,7 @@ public:
 
 	void CreateHeightmap(Heightmap* heightmapOut, unsigned int width, unsigned int height, float* heightData = nullptr);
 	void CreateColoredHeightmap(Heightmap* heightmapOut, unsigned int width, unsigned int height, float* heightData = nullptr, float* rgbColorData = nullptr);
+	void CreateWaterHeightmap(Heightmap* heightmapOut, unsigned int width, unsigned int height, float* heightData = nullptr);
 
 	virtual void step(float dt);
 	virtual bool ProcessWindowMessages();

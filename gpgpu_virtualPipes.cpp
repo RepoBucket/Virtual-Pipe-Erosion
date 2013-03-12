@@ -93,14 +93,23 @@ void gpgpu_VirtualPipe::startup()
     profile((*devices)[counter]);
   //profile((*devices)[1]);
 
-  std::vector<cl_int> out_intArray(1024, 5);
-  std::vector<cl_int> in_intArray(1024, 2);
+  cl_int* out_intArrayA = new cl_int[1024];
+  cl_int* out_intArrayB = new cl_int[1024];
+  cl_int* in_intArray = new cl_int[1024];
+
+  for (int counter = 0; counter < 1024; counter++)
+    {
+    out_intArrayA[counter] = counter;
+    out_intArrayB[counter] = 1024 - counter;
+    in_intArray[counter] = 32;
+    }
 
   cl::Context* context = new cl::Context(devices->at(0), NULL, NULL);
-  cl::Buffer* outbuffer = new cl::Buffer(*context, CL_MEM_READ_ONLY, sizeof(cl_int) * 1024, NULL, &whatHappened);
-  std::cout << "What happened with creating outbuffer: " << oclErrorString(whatHappened) << std::endl;
-  cl::Buffer* inbuffer = new cl::Buffer(*context, CL_MEM_WRITE_ONLY, sizeof(cl_int) * 1024, NULL, &whatHappened);
-  std::cout << "What happened with creating inbuffer: " << oclErrorString(whatHappened) << std::endl;
+  cl::Buffer outbufferA = cl::Buffer(*context, CL_MEM_READ_ONLY, sizeof(cl_int) * 1024, NULL, &whatHappened);
+ // std::cout << "What happened with creating outbuffer: " << oclErrorString(whatHappened) << std::endl;
+  cl::Buffer inbuffer = cl::Buffer(*context, CL_MEM_WRITE_ONLY, sizeof(cl_int) * 1024, NULL, &whatHappened);
+  cl::Buffer outbufferB = cl::Buffer(*context, CL_MEM_READ_ONLY, sizeof(cl_int) * 1024, NULL, &whatHappened);
+ // std::cout << "What happened with creating inbuffer: " << oclErrorString(whatHappened) << std::endl;
 
   std::vector<cl::Program>* programs = new std::vector<cl::Program>();
   std::vector<cl::Kernel>* kernels = new std::vector<cl::Kernel>();
@@ -116,28 +125,35 @@ void gpgpu_VirtualPipe::startup()
 
 
   whatHappened = (*programs)[0].createKernels(kernels);
-  std::cout << "What happened with creating a kernel: " << oclErrorString(whatHappened) << std::endl;
+  std::cout << "What happened with creating a kernel: "<< oclErrorString(whatHappened) << std::endl;
 
-  (*kernels)[0].setArg(0, outbuffer);
-  (*kernels)[0].setArg(1, inbuffer);
+  
+
+  (*kernels)[0].setArg(0, outbufferA);
+  (*kernels)[0].setArg(1, outbufferB);
+  (*kernels)[0].setArg(2, inbuffer);
   
   const size_t global_item_size = 1024;
-  const size_t local_item_size = 64;
+  const size_t local_item_size = 1;
   
   cl::NDRange globalRange(global_item_size);
   cl::NDRange localRange(local_item_size);
   cl::NDRange offset(0);
 
   cl::CommandQueue commandQueue((*context), (*devices)[0]);
-  whatHappened = commandQueue.enqueueWriteBuffer(*outbuffer, true, 0, sizeof(cl_int) * 1024, &out_intArray[0]);
+  // write list out_intArray into buffer.
+  whatHappened = commandQueue.enqueueWriteBuffer(outbufferA, false, 0, sizeof(cl_int) * 1024, out_intArrayA);
+  whatHappened = commandQueue.enqueueWriteBuffer(outbufferB, false, 0, sizeof(cl_int) * 1024, out_intArrayB);
+  commandQueue.finish();
   std::cout << "What happened with writing buffer to gpu: " << oclErrorString(whatHappened) << std::endl;
+  commandQueue.enqueueNDRangeKernel((*kernels)[0], offset, globalRange, localRange);
   commandQueue.finish();
-  commandQueue.enqueueNDRangeKernel(kernels->at(0), offset, globalRange, localRange);
   std::cout << "What happened with excecuting kernel: " << oclErrorString(whatHappened) << std::endl;
+  // write stuff from read buffer to in_intArray
+  commandQueue.enqueueReadBuffer(inbuffer, false, 0, sizeof(cl_int) * 1024, in_intArray);
   commandQueue.finish();
-  commandQueue.enqueueReadBuffer(*inbuffer, true, 0, sizeof(cl_int) * 1024, &(in_intArray)[0]);
   std::cout << "What happened with reading buffer from gpu: " << oclErrorString(whatHappened) << std::endl;
-  commandQueue.finish();
+  
 
   for (int counter = 0; counter < 1024; counter++)
     std::cout << "Position " << counter << " is " << in_intArray[counter] << std::endl;
@@ -155,4 +171,8 @@ void gpgpu_VirtualPipe::startup()
 
 
   std::cin.ignore(0);
+  }
+
+void gpgpu_VirtualPipe::profile(const cl::Device & queree)
+  {
   }

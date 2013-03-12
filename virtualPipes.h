@@ -174,6 +174,7 @@ class VirtualPipeErosion
     //For use with DirectXWindow
     void packageHeightmaps();
     float* getHeightmap();
+    float* getWatermap();
     float* getRGBMap();
 
   private:
@@ -181,7 +182,7 @@ class VirtualPipeErosion
     void stepThroughFlux(const int& startRow, const int& endRow); // For multithreading.
     void stepThroughVector(const int& startRow, const int& endRow);
     void stepThroughTransport(const int& startRow, const int& endRow);
-
+   // void stepThroughSlippage(const int& startRow, const int& endRow);
     
     void calculateFlux(pipeCell& thisCell); //Equation 2, for all the fluxes.
     void cleanUp(const int& startRow, const int& endRow);
@@ -192,6 +193,7 @@ class VirtualPipeErosion
     double bilinearSediment(const double& x, const double&y);
     heightmap* temporaryMap; //Use in generation.
     void erosionDeposition(pipeCell& thisCell);
+   // void updateTempTerrain(); // Write the current terrain heights to the render vector. For use in slippage calcs.
 
     double findSedimentCapacity(const pipeCell& thisCell);
 
@@ -213,6 +215,7 @@ class VirtualPipeErosion
     vector<pipeCell>* writeList;
     vector<double> sedimentList;
     vector<float> initialTerrainHeight;
+    
 
     heightmap renderMap;
     WallCell nullcell;
@@ -221,6 +224,7 @@ class VirtualPipeErosion
     /////
     vector<float> outputHeightmap;
     vector<float> outputRGBMap;
+    vector<float> outputWatermap;
   };
 
 class VirtualPipeErosionTools

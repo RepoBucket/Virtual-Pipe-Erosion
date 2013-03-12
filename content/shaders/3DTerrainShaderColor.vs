@@ -26,7 +26,7 @@ struct Fragment
 
     Fragment VS( uint vertexId : SV_VertexID, uint tileNumber : SV_InstanceID) 
     { 
-		float textureSize = textureSizeData.x;
+		uint textureSize = textureSizeData.x;
         Fragment frag; 
 		uint2 xy;
 		
@@ -37,8 +37,8 @@ struct Fragment
 		
 		float4 pos;
 		//set 3d position
-		pos.x = tileNumber%textureSize+vertexId/2;
-		pos.z = tileNumber/textureSize+vertexId%2;
+		pos.x = tileNumber%textureSize+(vertexId/2);
+		pos.z = tileNumber/textureSize+(vertexId%2);
 		pos.y = height;
 		pos.w = 1.0f;
 		frag.light = pos - camPos;
