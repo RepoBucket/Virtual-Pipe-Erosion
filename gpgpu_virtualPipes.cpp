@@ -1,3 +1,5 @@
+#pragma warning(disable: 4244)
+
 #include "gpgpu_virtualPipes.h"
 #include "parse.h"
 #include <boost/random/uniform_real_distribution.hpp>
@@ -8,7 +10,7 @@
 const char* oclErrorString(cl_int error)
 {
     static const char* errorString[] = {
-        "CL_SUCCESS",
+        "SUCCESS",
         "CL_DEVICE_NOT_FOUND",
         "CL_DEVICE_NOT_AVAILABLE",
         "CL_COMPILER_NOT_AVAILABLE",
@@ -82,6 +84,18 @@ const char* oclErrorString(cl_int error)
 
 }
 
+void gpgpu_VirtualPipe::buildReport(const int& index)
+  {
+  std::cout << "Building " << index << " ...";
+  cl_int whatHappened = programsArray[index].build(deviceArray);
+  std::cout << " " << oclErrorString(whatHappened) << std::endl;
+  if(whatHappened != CL_SUCCESS){
+    std::cout << "Build Status: " << programsArray[index].getBuildInfo<CL_PROGRAM_BUILD_STATUS>(deviceArray[0]) << std::endl;
+    std::cout << "Build Options:\t" << programsArray[index].getBuildInfo<CL_PROGRAM_BUILD_OPTIONS>(deviceArray[0]) << std::endl;
+    std::cout << "Build Log:\t " << programsArray[index].getBuildInfo<CL_PROGRAM_BUILD_LOG>(deviceArray[0]) << std::endl;
+    }
+  }
+
 gpgpu_VirtualPipe::gpgpu_VirtualPipe(const int& powersOfTwo)
   : gravityConstant(9.8f), pipeCrossSectionalArea(1.0f), sizeOfCell(1), actualWidth(pow((float)2.0f, powersOfTwo)),
   fluxArray1(actualWidth, cl_float4()), fluxArray2(actualWidth, cl_float4()), heightmapArray1(actualWidth, cl_float2()), heightmapArray2(actualWidth, cl_float2()), 
@@ -90,21 +104,57 @@ gpgpu_VirtualPipe::gpgpu_VirtualPipe(const int& powersOfTwo)
 
   std::string source;
   cl::Platform::get(&platformArray);
+  std::cout << "Looking for a GPU... ";
   platformArray[1].getDevices(CL_DEVICE_TYPE_GPU, &deviceArray);
   // If there aren't any GPUs, gotta fallback on CPUs
   if (deviceArray.size() == 0)
+    {
+    std::cout << "Failed, resorting to CPU.\n";
     platformArray[1].getDevices(CL_DEVICE_TYPE_CPU, &deviceArray);
+    }
+  else
+    std::cout << "Done.\n";
+
+  context = new cl::Context(deviceArray[0], NULL, NULL);
+
+  // Build programs!
+  source.assign(IOTools::parse("stepFlux_kernel.cl"));
+  programsArray.push_back(cl::Program(*context, source, true));
+  buildReport(0);
+
+  source.assign(IOTools::parse("updateVolume_kernel.cl"));
+  programsArray.push_back(cl::Program(*context, source, true));
+  buildReport(1);
+
+  /*
+  cl_int whatHappened = programsArray[0].build(deviceArray);
+  std::cout << "What happened with build: " << oclErrorString(whatHappened) << std::endl;
+  if(whatHappened != CL_SUCCESS){
+    std::cout << "Build Status: " << programsArray[0].getBuildInfo<CL_PROGRAM_BUILD_STATUS>(deviceArray[0]) << std::endl;
+    std::cout << "Build Options:\t" << programsArray[0].getBuildInfo<CL_PROGRAM_BUILD_OPTIONS>(deviceArray[0]) << std::endl;
+    std::cout << "Build Log:\t " << programsArray[0].getBuildInfo<CL_PROGRAM_BUILD_LOG>(deviceArray[0]) << std::endl;
+    }*/
+
   
+
+
   fluxArrayRead = &fluxArray1;
   fluxArrayWrite = &fluxArray2;
   heightmapArrayRead = &heightmapArray1;
   heightmapArrayWrite = &heightmapArray2;
   sedimentArrayRead = &sedimentArray1;
   sedimentArrayWrite = &sedimentArray2;
+
+
   }
 
 gpgpu_VirtualPipe::~gpgpu_VirtualPipe()
   {
+  }
+
+void gpgpu_VirtualPipe::testKernel()
+  {
+  std::string source;
   }
 
 void gpgpu_VirtualPipe::startup()

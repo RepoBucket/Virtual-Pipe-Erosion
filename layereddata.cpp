@@ -1,3 +1,5 @@
+#pragma warning(disable: 4244)
+
 #include "layereddata.h"
 //#include "heightmap.h"
 //#include "region.h" //For the color arithmetic.

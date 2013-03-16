@@ -218,9 +218,11 @@
     <None Include="OpenCL.dll" />
     <None Include="other_terrain.bmp" />
     <None Include="other_water.bmp" />
+    <None Include="stepFlux_kernel.cl" />
     <None Include="tangerineslice.png" />
     <None Include="test_terrain.bmp" />
     <None Include="test_water.bmp" />
+    <None Include="updateVolume_kernel.cl" />
     <None Include="vector_add_kernel.cl" />
   </ItemGroup>
   <ItemGroup>

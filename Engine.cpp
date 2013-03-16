@@ -55,7 +55,7 @@ bool Engine::EngineInit(map<int,bool> errormap)
 
   counter = 0;
   //thisErosion->generateTest();
- Erosion->generateV();
+ Erosion->generate();
 //  Erosion->addWater(0, 0, 100);
  //Erosion->addWaterRect(0, 0, 256, 256, 10);
   Erosion->render();

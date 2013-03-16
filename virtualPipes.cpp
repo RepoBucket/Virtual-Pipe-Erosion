@@ -99,6 +99,14 @@ void pipeCell::scaleByK(const double& K)
   fluxBottom *= K;
   }
 
+void pipeCell::scaleSoilByK(const float& K)
+  {
+  soil_fluxLeft *= K;
+  soil_fluxRight *= K;
+  soil_fluxTop *= K;
+  soil_fluxBottom *= K;
+  }
+
 double pipeCell::getSedimentCapacityConstant() const
   {
   return tempKc;
@@ -129,7 +137,6 @@ void drainCell::clear()
   waterHeight = 0;
   suspendedSediment = 0;
   fluxLeft = fluxRight = fluxTop = fluxBottom = 0;
-
   }
 
 
@@ -177,7 +184,9 @@ VirtualPipeErosion::VirtualPipeErosion(ALLEGRO_BITMAP* inputTerrain, ALLEGRO_BIT
   double cellSize = 1;
  /* w = al_get_bitmap_width(inputTerrain);
   h = al_get_bitmap_height(inputTerrain);*/
-  Perlingen.SetSeed(time(0));
+  boost::random::mt19937 gen;
+  boost::random::uniform_int_distribution<> dist(0, numeric_limits<int>::max()); 
+  Perlingen.SetSeed(dist.operator()(gen));
 
   for (int ycounter = 0; ycounter < h; ycounter++)
     for (int xcounter = 0; xcounter < w; xcounter++)
@@ -267,7 +276,7 @@ void VirtualPipeErosion::step(const double& time)
   transport3.join();
   transport4.join();
 
-/*  updateTempTerrain();
+//  updateTempTerrain();
 
   boost::thread slippage1(&VirtualPipeErosion::operator(), boost::ref(this), 0, h/4, 6);
   boost::thread slippage2(&VirtualPipeErosion::operator(), boost::ref(this), h/4, 2*h/4, 6);
@@ -277,7 +286,17 @@ void VirtualPipeErosion::step(const double& time)
   slippage1.join();
   slippage2.join();
   slippage3.join();
-  slippage4.join();*/
+  slippage4.join();
+
+  boost::thread move1(&VirtualPipeErosion::operator(), boost::ref(this), 0, h/4, 6);
+  boost::thread move2(&VirtualPipeErosion::operator(), boost::ref(this), h/4, 2*h/4, 6);
+  boost::thread move3(&VirtualPipeErosion::operator(), boost::ref(this), 2*h/4, 3*h/4, 6);
+  boost::thread move4(&VirtualPipeErosion::operator(), boost::ref(this), 3*h/4, h, 6);
+
+  move1.join();
+  move2.join();
+  move3.join();
+  move4.join();
 
   drain.clear();
 
@@ -352,7 +371,7 @@ void VirtualPipeErosion::stepThroughTransport(const int& startRow, const int& en
     }
   }
 
-/*void VirtualPipeErosion::stepThroughSlippage(const int& startRow, const int& endRow)
+void VirtualPipeErosion::stepThroughSlippageCalc(const int& startRow, const int& endRow)
   {
   pipeCell* thisCell;
   for (int ycounter = startRow; ycounter < endRow; ycounter++)
@@ -360,12 +379,37 @@ void VirtualPipeErosion::stepThroughTransport(const int& startRow, const int& en
     for (int xcounter = 0; xcounter < w; xcounter++)
       {
       thisCell = &write(xcounter, ycounter);
-
+      // Get the height difference that exceeds the slippage threshold.
+      thisCell->soil_fluxTop = max(0, currentTimeStep * pipeCrossSectionalArea * 9.8 * max(0, terrainHeightDifference(*thisCell, thisCell->x, thisCell->y-1) - thisCell->getSoilSlippage()));
+      thisCell->soil_fluxLeft = max(0, currentTimeStep * pipeCrossSectionalArea * 9.8 * max(0, terrainHeightDifference(*thisCell, thisCell->x-1, thisCell->y) - thisCell->getSoilSlippage()));
+      thisCell->soil_fluxRight = max(0, currentTimeStep * pipeCrossSectionalArea * 9.8 * max(0, terrainHeightDifference(*thisCell, thisCell->x+1, thisCell->y) - thisCell->getSoilSlippage()));
+      thisCell->soil_fluxBottom = max(0, currentTimeStep * pipeCrossSectionalArea * 9.8 * max(0, terrainHeightDifference(*thisCell, thisCell->x, thisCell->y+1) - thisCell->getSoilSlippage()));
+      //thisCell->scaleSoilByK((float)min(1, thisCell->getTerrainHeight() * thisCell->cellArea() / (thisCell->soil_fluxTop+thisCell->soil_fluxBottom+thisCell->soil_fluxLeft+thisCell->soil_fluxRight) / currentTimeStep));
       }
     }
-  }*/
+  }
 
-/*void VirtualPipeErosion::updateTempTerrain()
+void VirtualPipeErosion::stepThroughMoveTerrain(const int& startRow, const int& endRow)
+  {
+  pipeCell* thisCell;
+  for (int ycounter = startRow; ycounter < endRow; ycounter++)
+    {
+    for (int xcounter = 0; xcounter < w; xcounter++)
+      {
+      thisCell = &write(xcounter, ycounter);
+      // Write the new height.
+      thisCell->addToTerrainHeight( currentTimeStep * ( write(thisCell->x - 1, thisCell->y).soil_fluxRight 
+        + write(thisCell->x, thisCell->y + 1).soil_fluxTop
+        + write(thisCell->x + 1, thisCell->y).soil_fluxLeft
+        + write(thisCell->x, thisCell->y - 1).soil_fluxBottom
+        -( thisCell->soil_fluxBottom + thisCell->soil_fluxTop + thisCell->soil_fluxLeft + thisCell->soil_fluxRight)));
+      }
+    }
+  }
+
+
+/*
+void VirtualPipeErosion::updateTempTerrain()
   {
   for (int ycounter = 0; ycounter < h; ycounter++)
     {
@@ -433,7 +477,7 @@ void VirtualPipeErosion::cleanUp(const int& startRow, const int& endRow)
 
 double VirtualPipeErosion::findSedimentCapacity(const pipeCell& thisCell)
   {
-  return currentTimeStep *thisCell.getSedimentCapacityConstant() * max(0.001, abs(getSine(thisCell))) * thisCell.flow.length ;//* thisCell.getWaterHeight();
+  return currentTimeStep * thisCell.getSedimentCapacityConstant() * max(0.001, abs(getSine(thisCell))) * thisCell.flow.length ;//* thisCell.getWaterHeight();
   }
 
 double VirtualPipeErosion::getSine(const pipeCell& thisCell)
@@ -478,6 +522,11 @@ double VirtualPipeErosion::min(const double& left, const double& right)
 double VirtualPipeErosion::heightDifference(const pipeCell& currentCell, const int& x2, const int& y2)
   {
   return currentCell.getTotalHeight() - read(x2, y2).getTotalHeight();
+  }
+
+double VirtualPipeErosion::terrainHeightDifference(const pipeCell& currentCell, const int& x2, const int& y2)
+  {
+  return currentCell.getTerrainHeight() - read(x2, y2).getTerrainHeight();
   }
 
 double VirtualPipeErosion::scalingK(const pipeCell& thisCell)
@@ -762,12 +811,6 @@ void VirtualPipeErosion::renderSediment()
       al_unlock_bitmap(al_get_target_bitmap());
   }
 
-/*
-void VirtualPipeErosion::prepErosion(const double& time)
-  {
-  currentTimeStep = time;
-  }*/
-
 void VirtualPipeErosion::operator()(const int& startRow, const int& endRow, const int& mode)
   {
   if (mode == 0)
@@ -780,6 +823,10 @@ void VirtualPipeErosion::operator()(const int& startRow, const int& endRow, cons
     stepThroughErosion(startRow, endRow);
   else if (mode == 5)
     stepThroughTransport(startRow, endRow); // Must swap before and after Transport.
+  else if (mode == 6)
+    stepThroughSlippageCalc(startRow, endRow);
+  else if (mode == 7)
+    stepThroughMoveTerrain(startRow, endRow);
   else
     return;
   }

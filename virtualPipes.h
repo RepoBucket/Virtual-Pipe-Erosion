@@ -41,11 +41,13 @@ struct pipeCell
   void setSoilSlippage(const double& newSlippage);
   virtual double netFlux() const;
   double fluxLeft, fluxRight, fluxTop, fluxBottom; // The outflow flux.
+  float soil_fluxLeft, soil_fluxRight, soil_fluxTop, soil_fluxBottom;
   double suspendedSediment; // Probably will be replaced later by a more advanced model.
   vector3 flow;
   double cellArea() const;
   double cellLength() const;
   void scaleByK(const double& K);
+  void scaleSoilByK(const float& K);
 
   void addToWaterHeight(const double& moreWater);
   void addToTerrainHeight(const double& moreHeight);
@@ -132,11 +134,13 @@ class VirtualPipeErosion
     void stepThroughFlux(const int& startRow, const int& endRow); // For multithreading.
     void stepThroughVector(const int& startRow, const int& endRow);
     void stepThroughTransport(const int& startRow, const int& endRow);
-   // void stepThroughSlippage(const int& startRow, const int& endRow);
-    
+    void stepThroughSlippageCalc(const int& startRow, const int& endRow);
+    void stepThroughMoveTerrain(const int& startRow, const int& endRow);
+
     void calculateFlux(pipeCell& thisCell); //Equation 2, for all the fluxes.
     void cleanUp(const int& startRow, const int& endRow);
     double heightDifference(const pipeCell& currentCell, const int& x2, const int& y2);
+    double terrainHeightDifference(const pipeCell& currentCell, const int& x2, const int& y2);
     double scalingK(const pipeCell& thisCell);
     double getSine(const pipeCell& thisCell);
     double findNewSediment(const pipeCell& thisCell);
