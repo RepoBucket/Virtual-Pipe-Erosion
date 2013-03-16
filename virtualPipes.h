@@ -16,56 +16,6 @@ using namespace std;
 #undef max
 #undef min
 
-// Implement advanced stuff later.
-
-/*
-
-struct material
-  {
-  int ID;
-  double sedimentCapacity;
-  double deposition;
-  double dissolving;
-  string name;
-  };
-
-struct materialDict
-  {
-  materialDict() { 
-    string str;
-    material buffer;
-
-    buffer.deposition = 0; buffer.dissolving = 0; buffer.ID = 0; buffer.name = str.assign("null"); buffer.sedimentCapacity = 0;
-    table.push_back(buffer);
-
-    buffer.deposition = 0.3; buffer.dissolving = 0.3; buffer.ID = 1; buffer.name = str.assign("Sand"); buffer.sedimentCapacity = 1.5;
-    table.push_back(buffer);
-
-    buffer.deposition = 0.3; buffer.dissolving = 0.4; buffer.ID = 1; buffer.name = str.assign("Silt"); buffer.sedimentCapacity = 3.0;
-    table.push_back(buffer);
-
-    tableSize = table.size();
-    }
-  enum materials{};
-  material& lookup(const unsigned int& key);
-  vector<material> table;
-  private:
-    unsigned int tableSize;
-  };
-
-struct layer
-  {
-  vector<material>::iterator mat; //Iterator to a lookup table.
-  double height;
-  };
-
-struct transientLayer
-  {
-  map<int, material> materials;
-  map<int, double> heights;
-  double getHeight() const;
-  }; */
-
 struct pipeCell
   {
   pipeCell();

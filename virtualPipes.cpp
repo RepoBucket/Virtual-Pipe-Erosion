@@ -819,7 +819,9 @@ void VirtualPipeErosion::packageHeightmaps()
   pipeCell* tempbuffer;
   ALLEGRO_COLOR brown = al_map_rgb(200,150,100);
   ALLEGRO_COLOR otherbrown = al_map_rgb(150,75,0);
+  ALLEGRO_COLOR blue = al_map_rgb(0,0,150);
   ALLEGRO_COLOR temp;
+  //ColorMath::float3 bufferfloat;
 
   for(int ycounter = 0; ycounter < h; ycounter++)
     for (int xcounter = 0; xcounter < w; xcounter++)
@@ -829,10 +831,15 @@ void VirtualPipeErosion::packageHeightmaps()
       outputWatermap[xcounter + ycounter * w] = tempbuffer->getTotalHeight();
       
       temp = ColorMath::lerp(otherbrown, brown, tempbuffer->getTerrainHeight() / 100);
+      temp = ColorMath::lerp(temp, blue, min(1, tempbuffer->getWaterHeight() / 5));
+
+
 
       outputRGBMap[(xcounter + ycounter * w )* 3 + 0] = temp.r;
       outputRGBMap[(xcounter + ycounter * w )* 3 + 1] = temp.g;
       outputRGBMap[(xcounter + ycounter * w )* 3 + 2] = temp.b;
+
+
 
       /*
       outputRGBMap[(xcounter + ycounter * w )* 3 + 0] = 0.784f;

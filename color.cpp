@@ -47,4 +47,19 @@ namespace ColorMath
       c1.a += c2.a * interpolate;
       return c1;
       }
+
+    /*float3 lerp(float3 c1, const float3& c2, const float &interpolate)
+      {
+      float3 output;
+      output.r = 
+      c1.r *= 1 - interpolate;
+      c1.g *= 1 - interpolate;
+      c1.b *= 1 - interpolate;
+      //c1.a *= 1 - interpolate;
+      c1.r += c2.r * interpolate;
+      c1.b += c2.b * interpolate;
+      c1.g += c2.g * interpolate;
+     // c1.a += c2.a * interpolate;
+      return c1;
+      }*/
   }

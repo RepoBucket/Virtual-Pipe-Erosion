@@ -1,5 +1,9 @@
 #include "gpgpu_virtualPipes.h"
 #include "parse.h"
+#include <boost/random/uniform_real_distribution.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
+#include "noise.h"
+#include <cmath>
 
 const char* oclErrorString(cl_int error)
 {
@@ -78,6 +82,31 @@ const char* oclErrorString(cl_int error)
 
 }
 
+gpgpu_VirtualPipe::gpgpu_VirtualPipe(const int& powersOfTwo)
+  : gravityConstant(9.8f), pipeCrossSectionalArea(1.0f), sizeOfCell(1), actualWidth(pow((float)2.0f, powersOfTwo)),
+  fluxArray1(actualWidth, cl_float4()), fluxArray2(actualWidth, cl_float4()), heightmapArray1(actualWidth, cl_float2()), heightmapArray2(actualWidth, cl_float2()), 
+  sedimentArray1(actualWidth, cl_float2()), sedimentArray2(actualWidth, cl_float2()), constantsArray(actualWidth, cl_float4())
+  {
+
+  std::string source;
+  cl::Platform::get(&platformArray);
+  platformArray[1].getDevices(CL_DEVICE_TYPE_GPU, &deviceArray);
+  // If there aren't any GPUs, gotta fallback on CPUs
+  if (deviceArray.size() == 0)
+    platformArray[1].getDevices(CL_DEVICE_TYPE_CPU, &deviceArray);
+  
+  fluxArrayRead = &fluxArray1;
+  fluxArrayWrite = &fluxArray2;
+  heightmapArrayRead = &heightmapArray1;
+  heightmapArrayWrite = &heightmapArray2;
+  sedimentArrayRead = &sedimentArray1;
+  sedimentArrayWrite = &sedimentArray2;
+  }
+
+gpgpu_VirtualPipe::~gpgpu_VirtualPipe()
+  {
+  }
+
 void gpgpu_VirtualPipe::startup()
   {
   cl_int whatHappened;
@@ -153,7 +182,6 @@ void gpgpu_VirtualPipe::startup()
   commandQueue.enqueueReadBuffer(inbuffer, false, 0, sizeof(cl_int) * 1024, in_intArray);
   commandQueue.finish();
   std::cout << "What happened with reading buffer from gpu: " << oclErrorString(whatHappened) << std::endl;
-  
 
   for (int counter = 0; counter < 1024; counter++)
     std::cout << "Position " << counter << " is " << in_intArray[counter] << std::endl;
@@ -175,4 +203,9 @@ void gpgpu_VirtualPipe::startup()
 
 void gpgpu_VirtualPipe::profile(const cl::Device & queree)
   {
+  }
+
+void gpgpu_VirtualPipe::generate()
+  {
+
   }
