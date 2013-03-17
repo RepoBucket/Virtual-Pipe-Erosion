@@ -57,6 +57,7 @@
     </None>
     <None Include="stepFlux_kernel.cl" />
     <None Include="updateVolume_kernel.cl" />
+    <None Include="findFlowVectors_kernel.cl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AllegroEngine.cpp">

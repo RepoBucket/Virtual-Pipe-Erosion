@@ -23,15 +23,22 @@ class gpgpu_VirtualPipe
     gpgpu_VirtualPipe(const int& powersOfTwo);
     ~gpgpu_VirtualPipe();
     void startup();
-    int step(const float& timeStep);
+    void step(const float& timeStep);
     void profile(const cl::Device & queree);
-    void testKernel();
     
+    //void testKernel();
+    
+    void generateV();
+
     //
     // Getters
     //
 
     cl_float2& readHeights(const int& x, const int& y);
+    float* getWater();
+    float* getTerrain();
+    float* getRGB();
+    long long unsigned int getWidth();
     
     
   private:
@@ -39,10 +46,9 @@ class gpgpu_VirtualPipe
     // Functions
     //
 
-    void generate();
     void swap(); //swaps the read and write maps.
+    void package(); // Package the data arrays into 1D ones for rendering.
     
-
     //
     // Variables
     //
@@ -50,6 +56,17 @@ class gpgpu_VirtualPipe
     const float gravityConstant, pipeCrossSectionalArea, sizeOfCell;
     long long unsigned int actualWidth;
     cl::Context* context;
+    cl::CommandQueue* CommandQueue;
+    
+
+    // (buffers)
+    cl::Buffer* buffer_flux;
+    cl::Buffer* buffer_heightmap;
+    cl::Buffer* buffer_sediment;
+    cl::Buffer* buffer_constants;
+    cl::Buffer* buffer_flowVector;
+    cl::Buffer* dimensions;
+    cl::Buffer* timeStep;
 
     // (read/write points)
     std::vector<cl_float4>* fluxArrayRead; //0: fluxTop, 1: fluxBottom, 2: fluxLeft, 3: fluxRight
@@ -66,17 +83,24 @@ class gpgpu_VirtualPipe
     std::vector<cl_float2> heightmapArray1; //0: terrain 1: water
     std::vector<cl_float2> sedimentArray1; // 0: sediment, 1: capacity
     std::vector<cl_float4> constantsArray; // 0: sedimentcapacityconstant, 1: dissolving constant, 2: depositing constant, 3: soilslippagetheshold
-    std::vector<cl_float4> flowVectorArray; //4th member is empty
+    std::vector<cl_float2> flowVectorArray; 
     std::vector<cl_float4> fluxArray2; // 0: fluxTop, 1: fluxBottom, 2: fluxLeft, 3: fluxRight
     std::vector<cl_float2> heightmapArray2; //0: terrain 1: water
-    std::vector<cl_float2> sedimentArray2; // 0: sediment, 1: capacity
-      
-        
+    std::vector<cl_float2> sedimentArray2; // 0: sediment, 1: capacity'
+
+    std::vector<float> terrain;
+    std::vector<float> water;
+    std::vector<float> rgb;
+    
+    // (OpenCL arrays)
     std::vector<cl::Platform> platformArray;
     std::vector<cl::Device> deviceArray;
     std::vector<cl::Program> programsArray;
 
     void gpgpu_VirtualPipe::buildReport(const int& index);
+
+    // (RNG)
+    //noise::module::Perlin Perlingen;
   };
 
 

@@ -2,13 +2,30 @@
 #include <iostream>
 #include <string>
 #include "gpgpu_virtualPipes.h"
+#include "include\DirectXWindow.h"
+#include "include\Heightmap.h" 
 
 using namespace std;
 
 int main(int argc, char **argv)
   {
-  gpgpu_VirtualPipe Pipe(8);
-  Pipe.testKernel();
+  gpgpu_VirtualPipe Pipe(8); //2^8
+  
+  //
+  //// DirectX Window stuff
+  //
+
+  DirectXWindow* p3DWindow;
+  Heightmap* p3DHeightmap, *p3DWatermap;
+  p3DWindow = new DirectXWindow("OpenCL Virtual Pipes", 0, 640, 640, 0, 0);
+  p3DHeightmap = new Heightmap();
+  p3DWatermap = new Heightmap();
+  p3DWindow->CreateColoredHeightmap(p3DHeightmap, Pipe.getWidth(), Pipe.getWidth(), Pipe.getTerrain(), Pipe.getRGB());
+  p3DWindow->CreateWaterHeightmap(p3DWatermap, Pipe.getWidth(), Pipe.getWidth(), Pipe.getWater());
+
+  for (int counter = 0; counter < 1000; counter++)
+    Pipe.step(0.001);
+//  Pipe.testKernel();
   //Pipe.startup();
 
 

@@ -1,5 +1,5 @@
 
-__kernel void stepFlux(__global const int* dimensions, __global const float2* heightmap, __global const float* timeStep, __global float4* fluxmap) 
+__kernel void stepFlux(__global const int* dimensions, __global const float* timeStep, __global const float2* heightmap, __global float4* fluxmap) 
 {
     // 0: fluxTop, 1: fluxBottom, 2: fluxLeft, 3: fluxRight
     float4 flux;

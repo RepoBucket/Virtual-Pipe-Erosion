@@ -211,6 +211,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="allegro-5.0.7-monolith-md-debug.dll" />
+    <None Include="findFlowVectors_kernel.cl" />
     <None Include="hello_world_kernel.cl" />
     <None Include="index_add_kernel.cl" />
     <None Include="malgun.ttf" />

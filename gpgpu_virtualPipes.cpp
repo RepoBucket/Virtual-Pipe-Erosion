@@ -5,6 +5,7 @@
 #include <boost/random/uniform_real_distribution.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 #include "noise.h"
+#include "colors.h"
 #include <cmath>
 
 const char* oclErrorString(cl_int error)
@@ -98,8 +99,9 @@ void gpgpu_VirtualPipe::buildReport(const int& index)
 
 gpgpu_VirtualPipe::gpgpu_VirtualPipe(const int& powersOfTwo)
   : gravityConstant(9.8f), pipeCrossSectionalArea(1.0f), sizeOfCell(1), actualWidth(pow((float)2.0f, powersOfTwo)),
-  fluxArray1(actualWidth, cl_float4()), fluxArray2(actualWidth, cl_float4()), heightmapArray1(actualWidth, cl_float2()), heightmapArray2(actualWidth, cl_float2()), 
-  sedimentArray1(actualWidth, cl_float2()), sedimentArray2(actualWidth, cl_float2()), constantsArray(actualWidth, cl_float4())
+  fluxArray1(actualWidth*actualWidth, cl_float4()), fluxArray2(actualWidth*actualWidth, cl_float4()), heightmapArray1(actualWidth*actualWidth,  cl_float2()), heightmapArray2(actualWidth*actualWidth,  cl_float2()), 
+  sedimentArray1(actualWidth*actualWidth,  cl_float2()), sedimentArray2(actualWidth*actualWidth,  cl_float2()), constantsArray(actualWidth*actualWidth,  cl_float4())
+  , flowVectorArray(actualWidth*actualWidth, cl_float2()), terrain(actualWidth*actualWidth, float()), water(actualWidth*actualWidth, float()), rgb(actualWidth*actualWidth*3, float())
   {
 
   std::string source;
@@ -126,6 +128,14 @@ gpgpu_VirtualPipe::gpgpu_VirtualPipe(const int& powersOfTwo)
   programsArray.push_back(cl::Program(*context, source, true));
   buildReport(1);
 
+  source.assign(IOTools::parse("findFlowVectors_kernel.cl"));
+  programsArray.push_back(cl::Program(*context, source, true));
+  buildReport(2);
+
+  source.assign(IOTools::parse("cleanup_kernel.cl"));
+  programsArray.push_back(cl::Program(*context, source, true));
+  buildReport(3);
+
   /*
   cl_int whatHappened = programsArray[0].build(deviceArray);
   std::cout << "What happened with build: " << oclErrorString(whatHappened) << std::endl;
@@ -135,7 +145,7 @@ gpgpu_VirtualPipe::gpgpu_VirtualPipe(const int& powersOfTwo)
     std::cout << "Build Log:\t " << programsArray[0].getBuildInfo<CL_PROGRAM_BUILD_LOG>(deviceArray[0]) << std::endl;
     }*/
 
-  
+  std::cout << "Done.\n";
 
 
   fluxArrayRead = &fluxArray1;
@@ -144,18 +154,135 @@ gpgpu_VirtualPipe::gpgpu_VirtualPipe(const int& powersOfTwo)
   heightmapArrayWrite = &heightmapArray2;
   sedimentArrayRead = &sedimentArray1;
   sedimentArrayWrite = &sedimentArray2;
+  
+  buffer_flux = new cl::Buffer(*context, CL_MEM_READ_WRITE, sizeof(cl_float4) * actualWidth * actualWidth);
+  buffer_heightmap = new cl::Buffer(*context, CL_MEM_READ_WRITE, sizeof(cl_float2) * actualWidth * actualWidth);
+  buffer_flowVector = new cl::Buffer(*context, CL_MEM_READ_WRITE, sizeof(cl_float2) * actualWidth * actualWidth);
+  dimensions = new cl::Buffer(*context, CL_MEM_READ_ONLY, sizeof(cl_float));
+  timeStep = new cl::Buffer(*context, CL_MEM_READ_ONLY, sizeof(cl_float));
 
-
+  CommandQueue = new cl::CommandQueue(*context, deviceArray[0]);
+  CommandQueue->enqueueWriteBuffer(*dimensions, false, 0, sizeof(cl_float), &actualWidth);
   }
 
 gpgpu_VirtualPipe::~gpgpu_VirtualPipe()
   {
+  if (buffer_flux)
+    delete buffer_flux;
+  if (buffer_heightmap)
+    delete buffer_heightmap;
+  if (buffer_flowVector)
+    delete buffer_flowVector;
+  if (CommandQueue)
+    delete CommandQueue;
+  if (context)
+    delete context;
+  if (dimensions)
+    delete dimensions;
   }
 
-void gpgpu_VirtualPipe::testKernel()
+void gpgpu_VirtualPipe::step(const float& currentTimeStep)
+  {
+  cl_float step = currentTimeStep;
+  CommandQueue->enqueueWriteBuffer(*timeStep, false, 0, sizeof(cl_float), &step);
+
+  std::vector<cl::Kernel> kernelbuffer;
+  std::vector<cl::Kernel> kernels;
+  cl_int whatHappened;
+  whatHappened = programsArray[0].createKernels(&kernelbuffer);
+  kernels.push_back(kernelbuffer[0]);
+  whatHappened = programsArray[1].createKernels(&kernelbuffer);
+  kernels.push_back(kernelbuffer[0]);
+  whatHappened = programsArray[2].createKernels(&kernelbuffer);
+  kernels.push_back(kernelbuffer[0]);
+  whatHappened = programsArray[3].createKernels(&kernelbuffer);
+  kernels.push_back(kernelbuffer[0]);
+
+  const size_t local_item_size = 16;
+  const size_t global_item_size = actualWidth * actualWidth / local_item_size;
+
+  CommandQueue->enqueueWriteBuffer(*buffer_heightmap, false, 0, sizeof(cl_float2), &heightmapArrayRead);
+
+  kernels[0].setArg(0, *dimensions);
+  kernels[0].setArg(1, *timeStep);
+  kernels[0].setArg(2, *buffer_heightmap);
+  kernels[0].setArg(3, *buffer_flux);
+
+  kernels[1].setArg(0, *timeStep);
+  kernels[1].setArg(1, *dimensions);
+  kernels[1].setArg(2, *buffer_flux);
+  kernels[1].setArg(3, *buffer_heightmap);
+
+  kernels[2].setArg(0, *dimensions);
+  kernels[2].setArg(1, *buffer_flux);
+  kernels[2].setArg(2, *buffer_flowVector);
+  
+  kernels[3].setArg(0, *buffer_heightmap);
+
+  CommandQueue->finish();
+  CommandQueue->enqueueNDRangeKernel(kernels[0], cl::NDRange(0), cl::NDRange(global_item_size), cl::NDRange(local_item_size));
+  CommandQueue->finish();
+  CommandQueue->enqueueNDRangeKernel(kernels[0], cl::NDRange(0), cl::NDRange(global_item_size), cl::NDRange(local_item_size));
+  CommandQueue->finish();
+  CommandQueue->enqueueNDRangeKernel(kernels[0], cl::NDRange(0), cl::NDRange(global_item_size), cl::NDRange(local_item_size));
+  CommandQueue->finish();
+  CommandQueue->enqueueNDRangeKernel(kernels[0], cl::NDRange(0), cl::NDRange(global_item_size), cl::NDRange(local_item_size));
+  CommandQueue->finish();
+
+  CommandQueue->enqueueReadBuffer(*buffer_heightmap, false, 0, sizeof(cl_float2) * actualWidth * actualWidth, heightmapArrayWrite);
+  //CommandQueue->enqueueReadBuffer(*buffer_flowVector, false, 0, sizeof(cl_float2) * actualWidth * actualWidth, flowVectorArray);
+  //CommandQueue->enqueueReadBuffer(*buffer_heightmap, false, 0, sizeof(cl_float2) * actualWidth * actualWidth, heightmapArrayWrite);
+  CommandQueue->finish();
+  package();
+  }
+
+void gpgpu_VirtualPipe::package()
+  {
+  ALLEGRO_COLOR brown = al_map_rgb(200,150,100);
+  ALLEGRO_COLOR otherbrown = al_map_rgb(150,75,0);
+  ALLEGRO_COLOR blue = al_map_rgb(0,0,150);
+  ALLEGRO_COLOR temp;
+  int position, xcounter, ycounter;
+
+  for(int i = actualWidth * actualWidth - 1; i >= 0; i--)
+    {
+    terrain[i] = (*heightmapArrayWrite)[i].s[0];
+    water[i] = (*heightmapArrayWrite)[i].s[1];
+    temp = ColorMath::lerp(otherbrown, brown, terrain[i] / 100);
+    temp = ColorMath::lerp(temp, blue, min(1, terrain[i] / 5));
+
+    xcounter = i % actualWidth;
+    ycounter = floor((float)(i / actualWidth));
+    rgb[(xcounter + ycounter * actualWidth )* 3 + 0] = temp.r;
+    rgb[(xcounter + ycounter * actualWidth )* 3 + 1] = temp.g;
+    rgb[(xcounter + ycounter * actualWidth )* 3 + 2] = temp.b;
+    }
+  }
+
+long long unsigned int gpgpu_VirtualPipe::getWidth()
+  {
+  return actualWidth;
+  }
+
+float* gpgpu_VirtualPipe::getWater()
+  {
+  return &water[0];
+  }
+
+float* gpgpu_VirtualPipe::getTerrain()
+  {
+  return &terrain[0];
+  }
+
+float* gpgpu_VirtualPipe::getRGB()
+  {
+  return &rgb[0];
+  }
+
+/*void gpgpu_VirtualPipe::testKernel()
   {
   std::string source;
-  }
+  }*/
 
 void gpgpu_VirtualPipe::startup()
   {
@@ -220,6 +347,7 @@ void gpgpu_VirtualPipe::startup()
   cl::NDRange offset(0);
 
   cl::CommandQueue commandQueue((*context), (*devices)[0]);
+  
   // write list out_intArray into buffer.
   whatHappened = commandQueue.enqueueWriteBuffer(outbufferA, false, 0, sizeof(cl_int) * 1024, out_intArrayA);
   whatHappened = commandQueue.enqueueWriteBuffer(outbufferB, false, 0, sizeof(cl_int) * 1024, out_intArrayB);
@@ -255,7 +383,12 @@ void gpgpu_VirtualPipe::profile(const cl::Device & queree)
   {
   }
 
-void gpgpu_VirtualPipe::generate()
+void gpgpu_VirtualPipe::generateV()
   {
-
+  for (int ycounter = 0; ycounter < actualWidth; ycounter++)
+    for (int xcounter = 0; xcounter < actualWidth; xcounter++)
+      {
+      (*heightmapArrayRead)[xcounter + ycounter * actualWidth].s[0] = abs((float)(actualWidth/2 - ycounter));
+      //ad(xcounter, ycounter).setTerrainHeight(abs(h/2 - ycounter));
+      }
   }
