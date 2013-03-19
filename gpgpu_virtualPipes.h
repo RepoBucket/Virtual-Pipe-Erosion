@@ -25,7 +25,7 @@ class gpgpu_VirtualPipe
     void startup();
     void step(const float& timeStep);
     void profile(const cl::Device & queree);
-    
+    void randomRain(const int& howMany, const double& howMuch);
     //void testKernel();
     
     void generateV();
@@ -48,7 +48,9 @@ class gpgpu_VirtualPipe
 
     void swap(); //swaps the read and write maps.
     void package(); // Package the data arrays into 1D ones for rendering.
-    
+    int random(const int& min, const int& max);
+    float random(const float& min, const float& max);
+
     //
     // Variables
     //
@@ -97,10 +99,11 @@ class gpgpu_VirtualPipe
     std::vector<cl::Device> deviceArray;
     std::vector<cl::Program> programsArray;
 
-    void gpgpu_VirtualPipe::buildReport(const int& index);
+    bool buildReport(const int& index);
 
     // (RNG)
     //noise::module::Perlin Perlingen;
+    boost::random::mt19937 gen;
   };
 
 

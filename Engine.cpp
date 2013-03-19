@@ -4,7 +4,8 @@
 //#include "region.h"
 #include <map>
 //#include "layereddata.h"
-#include "virtualPipes.h"
+//#include "virtualPipes.h"
+#include "gpgpu_virtualPipes.h"
 #include <boost/thread.hpp>
 
 #include <iostream>
@@ -14,23 +15,29 @@
 #include "include\Heightmap.h" 
 
 Engine DisplayEngine;
+
 DirectXWindow* p3DWindow;
 Heightmap* p3DHeightmap, *p3DWatermap;
+gpgpu_VirtualPipe* Pipe;
 
-VirtualPipeErosion *Erosion;
+/*VirtualPipeErosion *Erosion;
 VirtualPipeErosionTools toolbox;
-int counter;
+
 int rendercounter;
-bool render;
+bool render;*/
 
 string otherbuffer;
+int counter;
+
 
 bool Engine::EngineInit(map<int,bool> errormap)
   {
   al_init_primitives_addon();
   al_init_image_addon();
-
-  ALLEGRO_BITMAP* inputTerrain, *inputWater;
+  Pipe = new gpgpu_VirtualPipe(7);
+  Pipe->step(0.001);
+  counter = 10000;
+  /*ALLEGRO_BITMAP* inputTerrain, *inputWater;
   string str;
   string buffer;
 
@@ -51,7 +58,7 @@ bool Engine::EngineInit(map<int,bool> errormap)
  /* if (POD.inputBitmap)
     Erosion->readFromBitmap(POD.inputBitmap, POD.scaleConstant);
   else
-    Erosion->generateV();*/
+    Erosion->generateV();
 
   counter = 0;
   //thisErosion->generateTest();
@@ -66,14 +73,22 @@ bool Engine::EngineInit(map<int,bool> errormap)
   p3DHeightmap = new Heightmap();
   p3DWatermap = new Heightmap();
   p3DWindow->CreateColoredHeightmap(p3DHeightmap, Erosion->w, Erosion->h, Erosion->getHeightmap(), Erosion->getRGBMap());
-  p3DWindow->CreateWaterHeightmap(p3DWatermap, Erosion->w, Erosion->h, Erosion->getWatermap());
+  p3DWindow->CreateWaterHeightmap(p3DWatermap, Erosion->w, Erosion->h, Erosion->getWatermap());*/
+
+  p3DWindow = new DirectXWindow("OpenCL Virtual Pipe", 0, 640, 640, 0, 0);
+  p3DHeightmap = new Heightmap();
+  p3DWatermap = new Heightmap();
+  p3DWindow->CreateColoredHeightmap(p3DHeightmap, Pipe->getWidth(), Pipe->getWidth(), Pipe->getTerrain(), Pipe->getRGB());
+  p3DWindow->CreateWaterHeightmap(p3DWatermap, Pipe->getWidth(), Pipe->getWidth(), Pipe->getWater());
+  Pipe->generateV();
 
   return true;
   }
 
 void Engine::Update()
   {
-  if (counter < 20000)
+  
+  /*if (counter < 20000)
     {
     otherbuffer.assign(to_string((long double)counter));
     toolbox.randomRain(*Erosion, 20, 0.1f);
@@ -108,11 +123,18 @@ void Engine::Update()
  /* if (render)
     Erosion->render();
   render = !render;*/
+  if (counter > 0)
+      {
+      Pipe->randomRain(10, 0.1f);
+      Pipe->step(0.001);
+      counter--;
+      }
+
   }
 
 void Engine::Render(ALLEGRO_DISPLAY *root)
   {
-  al_clear_to_color(al_map_rgb(255,255,255));
+  /*al_clear_to_color(al_map_rgb(255,255,255));
   al_draw_bitmap(Erosion->terrain, 0, 0, 0);
   al_draw_bitmap(Erosion->sedimentCapacityRender, Erosion->h, 0, 0);
   al_draw_bitmap(Erosion->sedimentRender, 0, Erosion->h, 0);
@@ -120,7 +142,15 @@ void Engine::Render(ALLEGRO_DISPLAY *root)
   p3DHeightmap->ModifyHeightsAndColors(Erosion->getHeightmap(), Erosion->getRGBMap());
   p3DWatermap->ModifyHeights(Erosion->getWatermap());
   p3DWindow->step(0.05);
+  al_draw_text(font, al_map_rgb(0,0,0), 10, 512, ALLEGRO_ALIGN_LEFT, otherbuffer.c_str());*/
+
+  otherbuffer.assign(to_string((long double)counter));
   al_draw_text(font, al_map_rgb(0,0,0), 10, 512, ALLEGRO_ALIGN_LEFT, otherbuffer.c_str());
+  p3DHeightmap->ModifyHeightsAndColors(Pipe->getTerrain(), Pipe->getRGB());
+  p3DWatermap->ModifyHeights(Pipe->getWater());
+  p3DWindow->step(0.001);
+    
+
   //al_draw_bitmap(thisRegion->landmap, 0, 0, 0);
   }
 
