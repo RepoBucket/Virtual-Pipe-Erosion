@@ -6,6 +6,10 @@
 #include <boost/thread.hpp>
 #include <boost/random/uniform_real_distribution.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
+#include <stdlib.h>
+#include <ctime>
+#include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 
 using namespace ColorMath;
 /*
@@ -149,10 +153,10 @@ void drainCell::clear()
 
 VirtualPipeErosion::VirtualPipeErosion(const int& width, const int& height, const double& cellSize, const bool& random)
   : w(width), h(height), gravityConstant(9.8), pipeCrossSectionalArea(1), erodeTimer(0), outputHeightmap(w*h), outputRGBMap(w*h*3)
-  ,initialTerrainHeight(w*h+1), outputWatermap(w*h)
+  ,initialTerrainHeight(w*h+1), outputWatermap(w*h), numberOfThreads(4)
   {
-  if (random)
-    Perlingen.SetSeed(time(0));
+  srand(time(0));
+  Perlingen.SetSeed(rand());
 
   for (int ycounter = 0; ycounter < h; ycounter++)
     for (int xcounter = 0; xcounter < w; xcounter++)
@@ -164,7 +168,6 @@ VirtualPipeErosion::VirtualPipeErosion(const int& width, const int& height, cons
   sedimentCapacityRender = al_create_bitmap(w , h);
   sedimentRender = al_create_bitmap(w, h);
   sedimentFraction = al_create_bitmap(w, h);
-
   sedimentList.insert(sedimentList.begin(), w*h, 0);
 
   renderMap.initMap(w,h);
@@ -184,9 +187,10 @@ VirtualPipeErosion::VirtualPipeErosion(ALLEGRO_BITMAP* inputTerrain, ALLEGRO_BIT
   double cellSize = 1;
  /* w = al_get_bitmap_width(inputTerrain);
   h = al_get_bitmap_height(inputTerrain);*/
-  boost::random::mt19937 gen;
-  boost::random::uniform_int_distribution<> dist(0, numeric_limits<int>::max()); 
-  Perlingen.SetSeed(dist.operator()(gen));
+  srand(time(0));
+ /* boost::random::mt19937 gen;
+  boost::random::uniform_int_distribution<> dist(0, numeric_limits<int>::max()); */
+  Perlingen.SetSeed(rand());
 
   for (int ycounter = 0; ycounter < h; ycounter++)
     for (int xcounter = 0; xcounter < w; xcounter++)
@@ -232,6 +236,10 @@ void VirtualPipeErosion::step(const double& time)
   {
   currentTimeStep = time;
 
+  ///
+  /// 4 threads
+  ///
+  
   boost::thread flux1(&VirtualPipeErosion::operator(), boost::ref(this), 0, h/4, 0);
   boost::thread flux2(&VirtualPipeErosion::operator(), boost::ref(this), h/4, 2*h/4, 0);
   boost::thread flux3(&VirtualPipeErosion::operator(), boost::ref(this), 2*h/4, 3*h/4, 0);
@@ -288,10 +296,10 @@ void VirtualPipeErosion::step(const double& time)
   slippage3.join();
   slippage4.join();
 
-  boost::thread move1(&VirtualPipeErosion::operator(), boost::ref(this), 0, h/4, 6);
-  boost::thread move2(&VirtualPipeErosion::operator(), boost::ref(this), h/4, 2*h/4, 6);
-  boost::thread move3(&VirtualPipeErosion::operator(), boost::ref(this), 2*h/4, 3*h/4, 6);
-  boost::thread move4(&VirtualPipeErosion::operator(), boost::ref(this), 3*h/4, h, 6);
+  boost::thread move1(&VirtualPipeErosion::operator(), boost::ref(this), 0, h/4, 7);
+  boost::thread move2(&VirtualPipeErosion::operator(), boost::ref(this), h/4, 2*h/4, 7);
+  boost::thread move3(&VirtualPipeErosion::operator(), boost::ref(this), 2*h/4, 3*h/4, 7);
+  boost::thread move4(&VirtualPipeErosion::operator(), boost::ref(this), 3*h/4, h, 7);
 
   move1.join();
   move2.join();
@@ -407,6 +415,10 @@ void VirtualPipeErosion::stepThroughMoveTerrain(const int& startRow, const int& 
     }
   }
 
+void VirtualPipeErosion::setThreads(const int& powersOfTwo)
+  {
+  numberOfThreads = pow((double)2.0f, (int)powersOfTwo);
+  }
 
 /*
 void VirtualPipeErosion::updateTempTerrain()
@@ -613,7 +625,7 @@ void VirtualPipeErosion::generateV()
     *writeList = *readList;
   }
 
-void VirtualPipeErosion::generate()
+void VirtualPipeErosion::generate(const double& magnification)
   {
   temporaryMap = new heightmap;
   temporaryMap->initMap(w, h);
@@ -621,16 +633,22 @@ void VirtualPipeErosion::generate()
   for (int ycounter = 0; ycounter < h; ycounter++)
     for (int xcounter = 0; xcounter < w; xcounter++)
       {
-      temporaryMap->infomap.push_back((Perlingen.GetValue((double)xcounter / 1503.1f / 4.0f, (double)ycounter / 1800.2f / 4.0f, 2.1f)));
+      temporaryMap->infomap.push_back((Perlingen.GetValue((double)xcounter / 153.1f / magnification / 4.0f, (double)ycounter / 180.2f / magnification / 4.0f, 2.1f)));
       }
 
-    temporaryMap->scale(10, 100);
+    temporaryMap->scale(0, 100);
 
   for (int ycounter = 0; ycounter < h; ycounter++)
     for (int xcounter = 0; xcounter < w; xcounter++)
       {
       read(xcounter, ycounter).setTerrainHeight(temporaryMap->at(xcounter, ycounter));
       }
+
+    for (int ycounter = 0; ycounter < h; ycounter++)
+      for (int xcounter = 0; xcounter < w; xcounter++)
+        {
+        read(xcounter, ycounter).setSoilSlippage(max(1, abs(Perlingen.GetValue(xcounter / 102.5, ycounter / 102.5, 12.1)+0.5f)));
+        }
 
 
     *writeList = *readList;
@@ -866,7 +884,8 @@ void VirtualPipeErosion::packageHeightmaps()
   pipeCell* tempbuffer;
   ALLEGRO_COLOR brown = al_map_rgb(200,150,100);
   ALLEGRO_COLOR otherbrown = al_map_rgb(150,75,0);
-  ALLEGRO_COLOR blue = al_map_rgb(0,0,150);
+ // ALLEGRO_COLOR blue = al_map_rgb(0,0,150);
+  ALLEGRO_COLOR darkBlue = al_map_rgb(0,0,50);
   ALLEGRO_COLOR temp;
   //ColorMath::float3 bufferfloat;
 
@@ -878,7 +897,7 @@ void VirtualPipeErosion::packageHeightmaps()
       outputWatermap[xcounter + ycounter * w] = tempbuffer->getTotalHeight();
       
       temp = ColorMath::lerp(otherbrown, brown, tempbuffer->getTerrainHeight() / 100);
-      temp = ColorMath::lerp(temp, blue, min(1, tempbuffer->getWaterHeight() / 5));
+      temp = ColorMath::lerp(temp, darkBlue, min(1, tempbuffer->getWaterHeight() / 3));
 
 
 

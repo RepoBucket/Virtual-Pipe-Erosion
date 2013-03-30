@@ -102,13 +102,15 @@ class VirtualPipeErosion
     void renderSediment();
     void renderFraction();
 
+    void setThreads(const int& powersOfTwo);
+
     //For threadedness
    // void prepErosion(const double& time); // Sets time.
     void operator()(const int& startRow, const int& endRow, const int& mode);
     void finishErosion(); //Swaps maps.
     //
     
-    void generate();
+    void generate(const double& magnification);
     void generateV();
     ALLEGRO_BITMAP* terrain;
     ALLEGRO_BITMAP* sedimentCapacityRender;
@@ -130,6 +132,10 @@ class VirtualPipeErosion
     float* getRGBMap();
 
   private:
+    //
+    //vector<boost::thread> threadlist;
+    int numberOfThreads;
+
     void stepThroughErosion(const int& startRow, const int& endRow);
     void stepThroughFlux(const int& startRow, const int& endRow); // For multithreading.
     void stepThroughVector(const int& startRow, const int& endRow);
