@@ -1,0 +1,138 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\Unused">
+      <UniqueIdentifier>{1e98a2cd-3855-4188-82a4-8d81d0423533}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Unused">
+      <UniqueIdentifier>{e787c10d-796f-47d4-9fc6-bdd62a10fca0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\openCL">
+      <UniqueIdentifier>{f8dbecf8-139f-4514-a80a-8795d3d11f90}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\openCL">
+      <UniqueIdentifier>{af4d1ebe-f435-45bb-9541-afb1530f85e7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="allegro-5.0.7-monolith-md-debug.dll" />
+    <None Include="malgunbd.ttf" />
+    <None Include="tangerineslice.png">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="other_terrain.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="other_water.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="test_water.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="OpenCL.dll" />
+    <None Include="vector_add_kernel.cl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="hello_world_kernel.cl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="index_add_kernel.cl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="test_terrain.bmp">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="stepFlux_kernel.cl" />
+    <None Include="updateVolume_kernel.cl" />
+    <None Include="findFlowVectors_kernel.cl" />
+    <None Include="cleanup_kernel.cl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="AllegroEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vector3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="virtualPipes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="region.cpp">
+      <Filter>Source Files\Unused</Filter>
+    </ClCompile>
+    <ClCompile Include="layereddata.cpp">
+      <Filter>Source Files\Unused</Filter>
+    </ClCompile>
+    <ClCompile Include="heightmap.cpp">
+      <Filter>Source Files\Unused</Filter>
+    </ClCompile>
+    <ClCompile Include="color.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gpgpu_virtualPipes.cpp">
+      <Filter>Source Files\openCL</Filter>
+    </ClCompile>
+    <ClCompile Include="parse.cpp">
+      <Filter>Source Files\openCL</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AllegroEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="togglelatch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vector3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="virtualPipes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="enums.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="heightmap.h">
+      <Filter>Header Files\Unused</Filter>
+    </ClInclude>
+    <ClInclude Include="region.h">
+      <Filter>Header Files\Unused</Filter>
+    </ClInclude>
+    <ClInclude Include="layereddata.h">
+      <Filter>Header Files\Unused</Filter>
+    </ClInclude>
+    <ClInclude Include="colors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gpgpu_virtualPipes.h">
+      <Filter>Header Files\openCL</Filter>
+    </ClInclude>
+    <ClInclude Include="cl.hpp">
+      <Filter>Header Files\openCL</Filter>
+    </ClInclude>
+    <ClInclude Include="parse.h">
+      <Filter>Header Files\openCL</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
