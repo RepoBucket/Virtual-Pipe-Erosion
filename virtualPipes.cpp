@@ -39,7 +39,7 @@ pipeCell::pipeCell(const int& newx, const int& newy, const double& cellSize)
   : x(newx), y(newy), fluxLeft(0), fluxRight(0), fluxTop(0), fluxBottom(0),
   suspendedSediment(0), terrainHeight(0), waterHeight(0), lengthX(cellSize), lengthY(cellSize)
   , tempKc(10.0f), dissolvingConstant(0.3), depositingConstant(0.3), sedimentCapacity(0),
-  hasBeenEroded(false), soilSlippage(2)
+  hasBeenEroded(false), soilSlippage(0.3)
   {
 
   }
@@ -286,7 +286,7 @@ void VirtualPipeErosion::step(const double& time)
 
 //  updateTempTerrain();
 
-  boost::thread slippage1(&VirtualPipeErosion::operator(), boost::ref(this), 0, h/4, 6);
+  /*boost::thread slippage1(&VirtualPipeErosion::operator(), boost::ref(this), 0, h/4, 6);
   boost::thread slippage2(&VirtualPipeErosion::operator(), boost::ref(this), h/4, 2*h/4, 6);
   boost::thread slippage3(&VirtualPipeErosion::operator(), boost::ref(this), 2*h/4, 3*h/4, 6);
   boost::thread slippage4(&VirtualPipeErosion::operator(), boost::ref(this), 3*h/4, h, 6);
@@ -304,7 +304,7 @@ void VirtualPipeErosion::step(const double& time)
   move1.join();
   move2.join();
   move3.join();
-  move4.join();
+  move4.join();*/
 
   drain.clear();
 

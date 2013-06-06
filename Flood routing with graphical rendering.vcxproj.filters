@@ -28,7 +28,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="allegro-5.0.7-monolith-md-debug.dll" />
-    <None Include="malgun.ttf" />
     <None Include="malgunbd.ttf" />
     <None Include="tangerineslice.png">
       <Filter>Resource Files</Filter>

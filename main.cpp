@@ -1,7 +1,7 @@
 #include "Engine.h"
 #include <iostream>
 #include <string>
-#include "gpgpu_virtualPipes.h"
+//#include "gpgpu_virtualPipes.h"
 #include "include\DirectXWindow.h"
 #include "include\Heightmap.h" 
 
