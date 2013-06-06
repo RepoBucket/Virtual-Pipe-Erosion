@@ -1,0 +1,16 @@
+float4 PS(float4 position : SV_POSITION, float4 norm : NORMAL0, float4 color : COLOR0, float4 light : NORMAL1) : SV_TARGET
+{
+	light = normalize(light);
+	float3 normal = norm.xyz;
+	float3 lightDir = float3(0.0f, -1.0f, 0.0f);
+	float3 specDir = float3(0.0f, -1.0f, 0.0f);
+	specDir = normalize(specDir);
+	lightDir = normalize(lightDir);
+	saturate(color);
+	normal = normalize(normal);
+	float lMod = dot(normal, lightDir);
+	float3 reflected = 2 * dot(normal, specDir) * normal - specDir;
+	float3 specular = pow(min(max(dot(reflected, light), 0.0f),1.0f), 8) * norm.w;
+	return float4(specular + lMod*color.rgb, 1.0f);
+	//return float4(1.0f, 1.0f, 1.0f, 1.0f);
+}
